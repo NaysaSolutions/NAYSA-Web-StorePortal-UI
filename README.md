@@ -1,1 +1,0 @@
-# NAYSA-Web-StorePortal-UI
