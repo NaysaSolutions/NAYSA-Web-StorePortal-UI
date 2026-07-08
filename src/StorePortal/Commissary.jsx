@@ -436,7 +436,7 @@ export default function CommissaryForecast() {
               className={`global-tran-tab-padding-ui flex items-center gap-2 ${activeTab === "detailed" ? "global-tran-tab-text_active-ui" : "rounded-lg bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-slate-300"}`}
             >
               <ListTree className="h-4 w-4" />
-              Forecast Detailed
+              Forecast Detaileds
             </button>
           </div>
 
