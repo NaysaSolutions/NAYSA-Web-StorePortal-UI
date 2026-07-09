@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import { Building2, LogOut, ShieldAlert, Store, Warehouse } from "lucide-react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Building2, LogOut, Menu, ShieldAlert, Store, X } from "lucide-react";
 import Login from "./StorePortal/Login";
-import StorePortal from "./StorePortal/StorePortalOrder";
-import Commissary from "./StorePortal/Commissary";
 import { apiUrl } from "./StorePortal/api";
+
+const StorePortal = lazy(() => import("./StorePortal/StorePortalOrder"));
 
 const MENU_ITEMS = [
   {
@@ -11,12 +12,6 @@ const MENU_ITEMS = [
     label: "Store Portal",
     group: "Other Module",
     icon: Store,
-  },
-  {
-    id: "commissary",
-    label: "Commissary",
-    group: "Other Module",
-    icon: Warehouse,
   },
 ];
 
@@ -55,15 +50,6 @@ const MODULE_FLAG_FIELDS = {
     "can_store_portal",
     "CAN_STORE_PORTAL",
   ],
-  commissary: [
-    "commissary",
-    "COMMISSARY",
-    "commissary_access",
-    "COMMISSARY_ACCESS",
-    "commissaryAccess",
-    "can_commissary",
-    "CAN_COMMISSARY",
-  ],
 };
 
 const normalizeModuleText = (value) =>
@@ -91,7 +77,6 @@ const modulesFromText = (value) => {
 
     if (["ALL", "BOTH", "ADMIN", "FULLACCESS"].includes(normalized)) {
       modules.add("store-portal");
-      modules.add("commissary");
       return;
     }
 
@@ -104,16 +89,6 @@ const modulesFromText = (value) => {
       modules.add("store-portal");
     }
 
-    if (
-      normalized.includes("COMMISSARY") ||
-      normalized.includes("COMISSARY") ||
-      normalized.includes("COMMISARY") ||
-      normalized.includes("COMISARY") ||
-      normalized.includes("COMMISARRY") ||
-      ["CM", "COM", "COMM", "COMMI", "CMS", "CMSRY", "CMY"].includes(normalized)
-    ) {
-      modules.add("commissary");
-    }
   });
 
   return Array.from(modules);
@@ -154,7 +129,7 @@ const modulesFromPrivilegedRole = (user) => {
   const role = normalizeModuleText(user?.role || user?.ROLE);
 
   if (["S", "X", "ADMIN", "SUPERADMIN"].includes(userType) || ["ADMIN", "APPROVER", "SUPERADMIN"].includes(role)) {
-    return ["store-portal", "commissary"];
+    return ["store-portal"];
   }
 
   return [];
@@ -210,6 +185,48 @@ const getUserCode = (user) =>
   user?.USER_ID ||
   "";
 
+const clearStoredAuth = () => {
+  localStorage.removeItem("authUser");
+  localStorage.removeItem("user");
+  localStorage.removeItem("USER_CODE");
+  localStorage.removeItem("activeMenu");
+};
+
+const PageFallback = ({ label = "Loading module..." }) => (
+  <div className="flex min-h-screen items-center justify-center px-4 pt-[54px]">
+    <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
+      <span className="h-5 w-5 rounded-full border-2 border-blue-200 border-t-blue-700 motion-safe:animate-spin" />
+      <span>{label}</span>
+    </div>
+  </div>
+);
+
+const pageVariants = {
+  initial: (direction) => ({
+    x: direction > 0 ? 40 : -40,
+    opacity: 0,
+  }),
+  animate: {
+    x: 0,
+    opacity: 1,
+    transition: {
+      duration: 0.24,
+      ease: [0.22, 1, 0.36, 1],
+    },
+  },
+  exit: (direction) => ({
+    x: direction > 0 ? -40 : 40,
+    opacity: 0,
+    transition: {
+      duration: 0.18,
+      ease: [0.4, 0, 0.2, 1],
+    },
+  }),
+};
+
+// How long the desktop rail stays expanded after the pointer/focus leaves it.
+const SIDEBAR_COLLAPSE_DELAY_MS = 350;
+
 export default function App() {
   const [authUser, setAuthUser] = useState(() => {
     try {
@@ -223,6 +240,34 @@ export default function App() {
     return MENU_ITEMS.some((item) => item.id === savedMenu) ? savedMenu : "";
   });
   const [accessRefreshing, setAccessRefreshing] = useState(() => Boolean(localStorage.getItem("authUser")));
+  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+  // Desktop-only: the rail sits collapsed (icon-only) by default and expands
+  // as a floating overlay while the user is actually hovering/focusing it.
+  const [isDesktopSidebarExpanded, setIsDesktopSidebarExpanded] = useState(false);
+  const [navDirection, setNavDirection] = useState(1);
+  const menuHistoryRef = useRef([]);
+  const sidebarCollapseTimeoutRef = useRef(null);
+
+  const clearSidebarCollapseTimeout = useCallback(() => {
+    if (sidebarCollapseTimeoutRef.current) {
+      clearTimeout(sidebarCollapseTimeoutRef.current);
+      sidebarCollapseTimeoutRef.current = null;
+    }
+  }, []);
+
+  const expandDesktopSidebar = useCallback(() => {
+    clearSidebarCollapseTimeout();
+    setIsDesktopSidebarExpanded(true);
+  }, [clearSidebarCollapseTimeout]);
+
+  const scheduleDesktopSidebarCollapse = useCallback(() => {
+    clearSidebarCollapseTimeout();
+    sidebarCollapseTimeoutRef.current = setTimeout(() => {
+      setIsDesktopSidebarExpanded(false);
+    }, SIDEBAR_COLLAPSE_DELAY_MS);
+  }, [clearSidebarCollapseTimeout]);
+
+  useEffect(() => clearSidebarCollapseTimeout, [clearSidebarCollapseTimeout]);
 
   const handleLoginSuccess = (user) => {
     const firstAllowedMenu = getFirstAllowedMenuId(user);
@@ -243,11 +288,48 @@ export default function App() {
     setAuthUser(user);
     setActiveMenu(firstAllowedMenu);
     setAccessRefreshing(false);
+    setIsSidebarVisible(false);
+    menuHistoryRef.current = firstAllowedMenu ? [firstAllowedMenu] : [];
   };
 
   const allowedMenuItems = useMemo(() => getAllowedMenuItems(authUser), [authUser]);
   const allowedMenuIds = useMemo(() => allowedMenuItems.map((item) => item.id), [allowedMenuItems]);
   const resolvedActiveMenu = allowedMenuIds.includes(activeMenu) ? activeMenu : allowedMenuItems[0]?.id || "";
+
+  useEffect(() => {
+    if (authUser) return;
+    setIsSidebarVisible(false);
+    setIsDesktopSidebarExpanded(false);
+    clearSidebarCollapseTimeout();
+    menuHistoryRef.current = [];
+  }, [authUser, clearSidebarCollapseTimeout]);
+
+  useEffect(() => {
+    document.body.style.overflow = isSidebarVisible ? "hidden" : "";
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isSidebarVisible]);
+
+  useEffect(() => {
+    if (!resolvedActiveMenu) return;
+
+    const history = menuHistoryRef.current;
+    const currentIndex = history.indexOf(resolvedActiveMenu);
+    const lastMenu = history[history.length - 1];
+
+    if (resolvedActiveMenu === lastMenu) return;
+
+    if (currentIndex !== -1) {
+      setNavDirection(-1);
+      menuHistoryRef.current = history.slice(0, currentIndex + 1);
+      return;
+    }
+
+    setNavDirection(1);
+    menuHistoryRef.current = [...history, resolvedActiveMenu];
+  }, [resolvedActiveMenu]);
 
   useEffect(() => {
     if (!authUser || resolvedActiveMenu === activeMenu) return;
@@ -282,13 +364,11 @@ export default function App() {
 
         if (!response.ok) {
           if (response.status === 401) {
-            localStorage.removeItem("authUser");
-            localStorage.removeItem("user");
-            localStorage.removeItem("USER_CODE");
-            localStorage.removeItem("activeMenu");
+            clearStoredAuth();
 
             setAuthUser(null);
             setActiveMenu("");
+            setIsSidebarVisible(false);
             setAccessRefreshing(false);
           }
 
@@ -300,6 +380,7 @@ export default function App() {
 
         localStorage.setItem("authUser", JSON.stringify(nextUser));
         localStorage.setItem("user", JSON.stringify(nextUser));
+        localStorage.setItem("USER_CODE", getUserCode(nextUser));
 
         if (nextActiveMenu) {
           localStorage.setItem("activeMenu", nextActiveMenu);
@@ -327,14 +408,19 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleMenuChange = (menuId) => {
+  const handleMenuChange = useCallback((menuId) => {
     if (!allowedMenuIds.includes(menuId)) return;
 
     setActiveMenu(menuId);
+    setIsSidebarVisible(false);
+    setIsDesktopSidebarExpanded(false);
+    clearSidebarCollapseTimeout();
     localStorage.setItem("activeMenu", menuId);
-  };
+  }, [allowedMenuIds, clearSidebarCollapseTimeout]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
+    setIsSidebarVisible(false);
+
     try {
       await fetch(apiUrl("/logout"), {
         method: "POST",
@@ -346,16 +432,14 @@ export default function App() {
     } catch (error) {
       console.warn("Logout API failed:", error);
     } finally {
-      localStorage.removeItem("authUser");
-      localStorage.removeItem("user");
-      localStorage.removeItem("USER_CODE");
-      localStorage.removeItem("activeMenu");
+      clearStoredAuth();
 
       setAuthUser(null);
-      setActiveMenu("store-portal");
+      setActiveMenu("");
       setAccessRefreshing(false);
+      menuHistoryRef.current = [];
     }
-  };
+  }, []);
 
   if (!authUser) {
     return <Login onLoginSuccess={handleLoginSuccess} />;
@@ -365,6 +449,16 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="fixed left-0 right-0 top-0 z-[1000] h-[54px] border-b border-blue-200 bg-white/95 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 dark:text-white">
         <div className="flex h-full min-w-0 items-center gap-2 px-2 sm:px-4">
+          <button
+            type="button"
+            onClick={() => setIsSidebarVisible((value) => !value)}
+            aria-expanded={isSidebarVisible}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 md:hidden"
+            title={isSidebarVisible ? "Close menu" : "Open menu"}
+          >
+            {isSidebarVisible ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          </button>
+
           <div className="flex min-w-0 shrink-0 items-center gap-2 pr-1 sm:pr-3">
             <img
               src="/naysa_logo.png"
@@ -400,14 +494,47 @@ export default function App() {
         </div>
       </header>
 
-      <aside className="fixed bottom-0 left-0 top-[54px] z-[900] w-16 border-r border-slate-200 bg-white shadow-sm md:w-64">
+      {isSidebarVisible && (
+        <button
+          type="button"
+          aria-label="Close menu"
+          className="fixed bottom-0 left-0 right-0 top-[54px] z-[850] bg-black/40 backdrop-blur-sm md:hidden"
+          onClick={() => setIsSidebarVisible(false)}
+        />
+      )}
+
+      <aside
+        onMouseEnter={expandDesktopSidebar}
+        onMouseLeave={scheduleDesktopSidebarCollapse}
+        onFocus={expandDesktopSidebar}
+        onBlur={scheduleDesktopSidebarCollapse}
+        className={`fixed bottom-0 left-0 top-[54px] z-[900] border-r border-slate-200 bg-white transition-[width,box-shadow] duration-200 dark:border-slate-800 dark:bg-slate-950 ${
+          isSidebarVisible ? "w-64 shadow-sm" : "w-16 shadow-sm"
+        } md:w-16 ${isDesktopSidebarExpanded ? "md:w-64 md:shadow-xl" : "md:shadow-none"}`}
+      >
         <div className="flex h-full flex-col">
           <div className="border-b border-slate-100 px-2 py-3 md:px-4">
-            <p className="hidden text-[10px] font-black uppercase tracking-wider text-slate-400 md:block">
+            <p
+              className={`${isSidebarVisible ? "block" : "hidden"} text-[10px] font-black uppercase tracking-wider text-slate-400 ${
+                isDesktopSidebarExpanded ? "md:block" : "md:hidden"
+              }`}
+            >
               Module Group
             </p>
-            <h2 className="hidden text-sm font-extrabold text-slate-800 md:block">Other Module</h2>
-            <h2 className="text-center text-[10px] font-black uppercase text-slate-500 md:hidden">Other</h2>
+            <h2
+              className={`${isSidebarVisible ? "block" : "hidden"} text-sm font-extrabold text-slate-800 dark:text-slate-100 ${
+                isDesktopSidebarExpanded ? "md:block" : "md:hidden"
+              }`}
+            >
+              Other Module
+            </h2>
+            <h2
+              className={`${isSidebarVisible ? "hidden" : "block"} text-center text-[10px] font-black uppercase text-slate-500 ${
+                isDesktopSidebarExpanded ? "md:hidden" : "md:block"
+              }`}
+            >
+              Other
+            </h2>
           </div>
 
           <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-3 md:px-3">
@@ -421,20 +548,34 @@ export default function App() {
                   type="button"
                   onClick={() => handleMenuChange(item.id)}
                   title={item.label}
-                  className={`flex h-10 w-full items-center justify-center gap-3 rounded-lg border px-0 text-left text-sm font-bold transition md:justify-start md:px-3 ${
+                  className={`flex h-10 w-full items-center gap-3 rounded-lg border text-left text-sm font-bold transition ${
+                    isSidebarVisible ? "justify-start px-3" : "justify-center px-0"
+                  } md:justify-center md:px-0 ${
+                    isDesktopSidebarExpanded ? "md:justify-start md:px-3" : ""
+                  } ${
                     isActive
                       ? "border-blue-700 bg-blue-700 text-white shadow-sm shadow-blue-900/20"
                       : "border-transparent text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800"
                   }`}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
-                  <span className="hidden truncate md:inline">{item.label}</span>
+                  <span
+                    className={`${isSidebarVisible ? "inline" : "hidden"} truncate ${
+                      isDesktopSidebarExpanded ? "md:inline" : "md:hidden"
+                    }`}
+                  >
+                    {item.label}
+                  </span>
                 </button>
               );
             })}
 
             {allowedMenuItems.length === 0 && (
-              <div className="hidden rounded-lg border border-slate-200 bg-slate-50 px-3 py-4 text-xs font-semibold leading-5 text-slate-500 md:block">
+              <div
+                className={`${isSidebarVisible ? "block" : "hidden"} rounded-lg border border-slate-200 bg-slate-50 px-3 py-4 text-xs font-semibold leading-5 text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 ${
+                  isDesktopSidebarExpanded ? "md:block" : "md:hidden"
+                }`}
+              >
                 No modules assigned to this user.
               </div>
             )}
@@ -442,10 +583,23 @@ export default function App() {
         </div>
       </aside>
 
-      <main className="min-h-screen pl-16 md:pl-64">
-        {resolvedActiveMenu === "commissary" && <Commissary user={authUser} />}
-        {resolvedActiveMenu === "store-portal" && <StorePortal user={authUser} />}
-        {!resolvedActiveMenu && <NoModuleAccess isLoading={accessRefreshing} onLogout={handleLogout} />}
+      <main className="min-h-screen overflow-hidden pl-16">
+        <AnimatePresence mode="wait" initial={false} custom={navDirection}>
+          <motion.div
+            key={resolvedActiveMenu || "no-module-access"}
+            custom={navDirection}
+            variants={pageVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="min-h-screen"
+          >
+            <Suspense fallback={<PageFallback />}>
+              {resolvedActiveMenu === "store-portal" && <StorePortal user={authUser} />}
+              {!resolvedActiveMenu && <NoModuleAccess isLoading={accessRefreshing} onLogout={handleLogout} />}
+            </Suspense>
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );
@@ -464,7 +618,7 @@ function NoModuleAccess({ isLoading, onLogout }) {
         <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
           {isLoading
             ? "Please wait while the system refreshes your assigned modules."
-            : "Your account is not assigned to Store Portal or Commissary."}
+            : "Your account is not assigned to Store Portal."}
         </p>
         {!isLoading && (
           <button

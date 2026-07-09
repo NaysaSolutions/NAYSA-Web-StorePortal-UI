@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Building2,
   CheckCircle2,
@@ -638,9 +638,14 @@ export default function StorePortalOrder({ user: authUser }) {
   const [historyLoading, setHistoryLoading] = useState(false);
 
   const [toast, setToast] = useState(null);
+  const itemCacheRef = useRef(new Map());
+  const itemRequestRef = useRef(new Map());
+  const forecastRequestIdRef = useRef(0);
+  const confirmationRequestIdRef = useRef(0);
 
   const dates = useMemo(() => getDateRange(startDate, endDate), [startDate, endDate]);
   const hasTaggedBranch = Boolean(storeCode);
+  const itemCacheKey = useMemo(() => `${userCode || ""}::${storeCode || ""}`, [storeCode, userCode]);
   const isBusy = refsLoading || forecastLoading || forecastSubmitting || confirmLoading || confirmSubmitting || historyLoading;
   const userDisplay = userName && userName !== userCode ? `${userCode} - ${userName}` : userCode;
   const branchDisplay = branchName ? `${branchCode} - ${branchName}` : branchCode;
@@ -940,9 +945,44 @@ export default function StorePortalOrder({ user: authUser }) {
     );
   }, [historyCategoryOptions]);
 
+  const getStoreItems = useCallback(
+    async ({ refresh = false } = {}) => {
+      if (!hasTaggedBranch) return [];
+
+      if (!refresh && itemCacheRef.current.has(itemCacheKey)) {
+        return itemCacheRef.current.get(itemCacheKey);
+      }
+
+      if (!refresh && itemRequestRef.current.has(itemCacheKey)) {
+        return itemRequestRef.current.get(itemCacheKey);
+      }
+
+      let request;
+      request = fetchData("store-portal/items", { userCode, storeCode })
+        .then((response) => {
+          const loadedItems = mergeUniqueItems(unwrapDataArray(response));
+          if (itemRequestRef.current.get(itemCacheKey) === request) {
+            itemCacheRef.current.set(itemCacheKey, loadedItems);
+          }
+          return loadedItems;
+        })
+        .finally(() => {
+          if (itemRequestRef.current.get(itemCacheKey) === request) {
+            itemRequestRef.current.delete(itemCacheKey);
+          }
+        });
+
+      itemRequestRef.current.set(itemCacheKey, request);
+      return request;
+    },
+    [hasTaggedBranch, itemCacheKey, storeCode, userCode],
+  );
+
   const loadItems = useCallback(
-    async ({ silent = false } = {}) => {
+    async ({ silent = false, refreshItems = false } = {}) => {
       if (!hasTaggedBranch) {
+        forecastRequestIdRef.current += 1;
+        setForecastLoading(false);
         setItems([]);
         setOrderMatrix({});
         setLoadedOrderMatrix({});
@@ -952,6 +992,8 @@ export default function StorePortalOrder({ user: authUser }) {
       }
 
       if (dates.length === 0) {
+        forecastRequestIdRef.current += 1;
+        setForecastLoading(false);
         setItems([]);
         setOrderMatrix({});
         setLoadedOrderMatrix({});
@@ -960,33 +1002,38 @@ export default function StorePortalOrder({ user: authUser }) {
         return;
       }
 
-
+      const requestId = forecastRequestIdRef.current + 1;
+      forecastRequestIdRef.current = requestId;
       setForecastLoading(true);
+
       try {
-        const [itemResponse, forecastResponse] = await Promise.all([
-          fetchData("store-portal/items", { userCode, storeCode }),
+        const [loadedItems, forecastResult] = await Promise.all([
+          getStoreItems({ refresh: refreshItems }),
           fetchData("store-portal/weekly-forecast", {
             userCode,
             storeCode,
             startDate,
             endDate,
             orderType: "WeeklyForecast",
-          }).catch((forecastError) => {
-            // Allow item loading to succeed even if forecast loading fails
-            console.warn("Items loaded, but existing Order Forecast quantities were not retrieved:", forecastError);
-            if (!silent) {
-              showToast("Failed to load existing forecast quantities.", "error");
-            }
-            return null; // Return null to indicate failure
-          }),
+          })
+            .then((response) => ({ response }))
+            .catch((error) => ({ error })),
         ]);
 
-        const loadedItems = mergeUniqueItems(unwrapDataArray(itemResponse));
+        if (forecastRequestIdRef.current !== requestId) return;
+
         const itemStoreType = loadedItems.find((item) => item.storeType)?.storeType;
         if (itemStoreType) setStoreType(itemStoreType);
 
-        const savedForecastRows = forecastResponse
-          ? unwrapDataArray(forecastResponse).map(normalizeForecastRow)
+        if (forecastResult.error) {
+          console.warn("Items loaded, but existing Order Forecast quantities were not retrieved:", forecastResult.error);
+          if (!silent) {
+            showToast("Failed to load existing forecast quantities.", "error");
+          }
+        }
+
+        const savedForecastRows = forecastResult.response
+          ? unwrapDataArray(forecastResult.response).map(normalizeForecastRow)
           : [];
 
         const nextOrderMatrix = buildOrderMatrix(loadedItems, savedForecastRows, dates);
@@ -1005,6 +1052,8 @@ export default function StorePortalOrder({ user: authUser }) {
           );
         }
       } catch (error) {
+        if (forecastRequestIdRef.current !== requestId) return;
+
         console.error("Failed to load store portal items:", error);
         setItems([]);
         setOrderMatrix({});
@@ -1012,10 +1061,12 @@ export default function StorePortalOrder({ user: authUser }) {
         setConfirmedMatrix({});
         if (!silent) showToast("Unable to load store items.", "error");
       } finally {
-        setForecastLoading(false);
+        if (forecastRequestIdRef.current === requestId) {
+          setForecastLoading(false);
+        }
       }
-    }, // eslint-disable-next-line react-hooks/exhaustive-deps
-    [hasTaggedBranch, storeCode, userCode, startDate, endDate, showToast],
+    },
+    [dates, endDate, getStoreItems, hasTaggedBranch, showToast, startDate, storeCode, userCode],
   );
 
   const loadHistory = useCallback(
@@ -1068,7 +1119,7 @@ export default function StorePortalOrder({ user: authUser }) {
     // Initial load for the forecast entry view
     loadItems({ silent: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startDate, endDate, storeCode]); // Reload when primary filters change
+  }, [startDate, endDate, storeCode, userCode]); // Reload when primary filters change
 
   useEffect(() => {
     if (forecastView === "history") {
@@ -1077,6 +1128,8 @@ export default function StorePortalOrder({ user: authUser }) {
   }, [forecastView, loadHistory]);
 
   useEffect(() => {
+    confirmationRequestIdRef.current += 1;
+    setConfirmLoading(false);
     setConfirmationRows([]);
     setLoadedConfirmationRows([]);
   }, [storeCode, deliveryDate]);
@@ -1122,13 +1175,23 @@ export default function StorePortalOrder({ user: authUser }) {
 
     const safeUserCode = userCode || userName || "SYSTEM";
     const details = [];
+    let hasForecastChanges = false;
 
     items.forEach((item) => {
       if (!item.itemCode) return;
 
       dates.forEach((date) => {
+        if (isForecastCellConfirmed(item.itemCode, date)) return;
+
         const rawQty = orderMatrix[item.itemCode]?.[date];
         const orderQty = toNumber(rawQty);
+        const loadedQty = toNumber(loadedOrderMatrix[item.itemCode]?.[date]);
+
+        if (orderQty !== loadedQty) {
+          hasForecastChanges = true;
+        }
+
+        if (orderQty <= 0) return;
 
         details.push({
           itemCode: item.itemCode,
@@ -1141,8 +1204,8 @@ export default function StorePortalOrder({ user: authUser }) {
       });
     });
 
-    if (details.length === 0) {
-      showToast("No valid forecast details to submit.", "error");
+    if (details.length === 0 && !hasForecastChanges) {
+      showToast("Enter at least one forecast quantity before submitting.", "error");
       return;
     }
 
@@ -1158,8 +1221,8 @@ export default function StorePortalOrder({ user: authUser }) {
     setForecastSubmitting(true);
     try {
       const res = await postRequest("store-portal/weekly-forecast", payload);
+      setLoadedOrderMatrix(cloneMatrix(orderMatrix));
       showToast(res?.message || "Order Forecast submitted successfully.");
-      await loadItems({ silent: true });
     } catch (error) {
       console.error("Failed to submit Order Forecast:", error?.response?.data || error);
       showToast(getApiErrorMessage(error, "Unable to submit Order Forecast."), "error");
@@ -1168,40 +1231,56 @@ export default function StorePortalOrder({ user: authUser }) {
     }
   };
 
-  const loadConfirmation = async () => {
-    if (!hasTaggedBranch) {
-      showToast("No branch is tagged to the logged-in user account.", "error");
-      return;
-    }
+  const loadConfirmation = useCallback(
+    async ({ silent = false } = {}) => {
+      if (!hasTaggedBranch) {
+        confirmationRequestIdRef.current += 1;
+        setConfirmLoading(false);
+        if (!silent) showToast("No branch is tagged to the logged-in user account.", "error");
+        return [];
+      }
 
-    setConfirmLoading(true);
-    try {
-      const res = await fetchData("store-portal/confirmation", {
-        storeCode,
-        deliveryDate,
-      });
+      const requestId = confirmationRequestIdRef.current + 1;
+      confirmationRequestIdRef.current = requestId;
+      setConfirmLoading(true);
 
-      const rows = unwrapDataArray(res)
-        .map((row) => normalizeConfirmationRow(row, deliveryDate))
-        // Keep confirmed rows even if the weekly qty returned as 0.
-        // The saved/confirmed qty must still be retrievable for old forecast dates.
-        .filter(
-          (row) =>
-            row.itemCode &&
-            (toNumber(row.orderQty) > 0 || toNumber(row.forecastQty) > 0 || toBoolean(row.confirmed)),
-        );
+      try {
+        const res = await fetchData("store-portal/confirmation", {
+          storeCode,
+          deliveryDate,
+        });
 
-      setConfirmationRows(rows);
-      setLoadedConfirmationRows(rows.map((row) => ({ ...row })));
-    } catch (error) {
-      console.error("Failed to load store portal confirmation:", error);
-      setConfirmationRows([]);
-      setLoadedConfirmationRows([]);
-      showToast("Unable to load forecast confirmation.", "error");
-    } finally {
-      setConfirmLoading(false);
-    }
-  };
+        if (confirmationRequestIdRef.current !== requestId) return [];
+
+        const rows = unwrapDataArray(res)
+          .map((row) => normalizeConfirmationRow(row, deliveryDate))
+          // Keep confirmed rows even if the weekly qty returned as 0.
+          // The saved/confirmed qty must still be retrievable for old forecast dates.
+          .filter(
+            (row) =>
+              row.itemCode &&
+              (toNumber(row.orderQty) > 0 || toNumber(row.forecastQty) > 0 || toBoolean(row.confirmed)),
+          );
+
+        setConfirmationRows(rows);
+        setLoadedConfirmationRows(rows.map((row) => ({ ...row })));
+        return rows;
+      } catch (error) {
+        if (confirmationRequestIdRef.current !== requestId) return [];
+
+        console.error("Failed to load store portal confirmation:", error);
+        setConfirmationRows([]);
+        setLoadedConfirmationRows([]);
+        if (!silent) showToast("Unable to load forecast confirmation.", "error");
+        return [];
+      } finally {
+        if (confirmationRequestIdRef.current === requestId) {
+          setConfirmLoading(false);
+        }
+      }
+    },
+    [deliveryDate, hasTaggedBranch, showToast, storeCode],
+  );
 
   const resetConfirmationRows = () => {
     setConfirmationRows(loadedConfirmationRows.map((row) => ({ ...row })));
@@ -1263,8 +1342,7 @@ export default function StorePortalOrder({ user: authUser }) {
     try {
       const res = await postRequest("store-portal/confirm-order", payload);
       showToast(res?.message || "Order confirmed successfully.");
-      await loadItems({ silent: true });
-      await loadConfirmation();
+      await Promise.all([loadItems({ silent: true }), loadConfirmation({ silent: true })]);
     } catch (error) {
       console.error("Failed to confirm store portal order:", error);
       showToast(getApiErrorMessage(error, "Unable to confirm order."), "error");
@@ -1344,37 +1422,16 @@ export default function StorePortalOrder({ user: authUser }) {
     [filteredHistoryRows],
   );
 
-  return (
-    <div className="global-tran-main-div-ui !mt-0 min-w-0 overflow-x-hidden px-2 pb-20 pt-[136px] sm:pt-[112px] md:pt-[116px] lg:pt-[120px]">
-      {isBusy && <LoadingSpinner />}
-      <Toast toast={toast} />
+return (
+  <div className="global-tran-main-div-ui !mt-0 min-w-0 overflow-x-hidden px-2 pb-20 pt-[70px] sm:px-3 sm:pt-[74px] lg:px-4">
+    {isBusy && <LoadingSpinner />}
+    <Toast toast={toast} />
 
-      <div className="fixed left-[4.5rem] right-2 top-[54px] z-[20] flex max-w-[calc(100vw-1rem)] flex-col gap-2 rounded-lg bg-gradient-to-r from-blue-200 to-blue-100 p-2 text-blue-900 shadow-xl dark:bg-blue-900 dark:text-white sm:left-20 sm:right-4 sm:top-[62px] sm:max-w-none sm:flex-row sm:items-center sm:justify-between md:left-[17rem] md:right-4">
-        <div className="min-w-0 text-center sm:text-left">
-          <h1 className="break-words px-1 text-base font-semibold leading-tight sm:px-3 sm:text-xl lg:text-2xl">
-            Store Portal Ordering
-          </h1>
-        </div>
-
-        <div className="grid w-full grid-cols-2 gap-2 text-center sm:w-auto sm:min-w-[260px] sm:gap-4">
-          <div className="min-w-0">
-            <p className="truncate text-[10px] font-semibold text-gray-600 dark:text-white sm:text-xs">
-              User Account
-            </p>
-            <h1 className="truncate text-xs font-extrabold text-gray-800 dark:text-gray-200 sm:text-sm lg:text-base">
-              {userCode || "Loading"}
-            </h1>
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-[10px] font-semibold text-gray-600 dark:text-white sm:text-xs">
-              Tagged Branch
-            </p>
-            <h1 className={`truncate text-xs font-extrabold sm:text-sm lg:text-base ${hasTaggedBranch ? "global-tran-stat-text-finalized-ui" : "global-tran-stat-text-closed-ui"}`}>
-              {branchCode || "Not Tagged"}
-            </h1>
-          </div>
-        </div>
-      </div>
+    <div className="relative z-[1] mb-3 flex w-full min-w-0 items-center rounded-lg border border-blue-200 bg-blue-100 px-4 py-3 text-blue-900 shadow-md dark:border-blue-800 dark:bg-blue-900 dark:text-white sm:mb-4 sm:px-5">
+      <h1 className="min-w-0 break-words text-base font-extrabold leading-tight tracking-wide sm:text-xl lg:text-2xl">
+        Store Portal Ordering
+      </h1>
+    </div>
 
       <div className="global-tran-header-div-ui !mt-0 !p-3 sm:!p-4">
         <div className="global-tran-header-tab-div-ui">
@@ -1426,7 +1483,7 @@ export default function StorePortalOrder({ user: authUser }) {
                   <span className="sm:hidden">Cutoff 1:00 PM</span>
                   <span className="hidden sm:inline">All order confirmations must be completed on or before 1:00 PM.</span>
                 </StatusPill>
-                <ActionButton icon={RefreshCw} onClick={() => loadItems()} disabled={forecastLoading || !hasTaggedBranch}>
+                <ActionButton icon={RefreshCw} onClick={() => loadItems({ refreshItems: true })} disabled={forecastLoading || !hasTaggedBranch}>
                   {forecastLoading ? "Loading..." : "Load Items"}
                 </ActionButton>
                 <ActionButton icon={RotateCcw} onClick={resetWeeklyForecast} disabled={forecastLoading || items.length === 0}>
@@ -1970,7 +2027,7 @@ export default function StorePortalOrder({ user: authUser }) {
           </div>
 
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-            <ActionButton icon={RefreshCw} onClick={loadConfirmation} disabled={confirmLoading || !hasTaggedBranch}>
+            <ActionButton icon={RefreshCw} onClick={() => loadConfirmation()} disabled={confirmLoading || !hasTaggedBranch}>
               {confirmLoading ? "Loading..." : "Load Forecast"}
             </ActionButton>
             <ActionButton
