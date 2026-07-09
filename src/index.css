@@ -1,111 +1,189 @@
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+@import "tailwindcss";
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+@custom-variant dark (&:where(.dark, .dark *));
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+html,
+body,
+#root {
+  min-height: 100%;
+  color-scheme: light;
 }
 
 body {
   margin: 0;
+  background: #f8fafc;
+  color: #0f172a;
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+button,
+input,
+select {
+  font: inherit;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+@layer components {
+  .global-tran-main-div-ui {
+    min-height: 100vh;
+    background: linear-gradient(180deg, #f8fafc 0%, #eef6ff 48%, #f8fafc 100%);
+    color: #0f172a;
   }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
+
+  .global-tran-header-div-ui,
+  .global-tran-tab-div-ui {
+    margin: 0.75rem auto 0;
+    width: min(100%, calc(100vw - 1rem));
+    border: 1px solid #dbeafe;
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
   }
-}
-p {
-  margin: 0;
-}
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
+  .global-tran-header-tab-div-ui,
+  .global-tran-tab-nav-ui,
+  .global-tran-tab-footer-main-div-ui {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+  .global-tran-tab-padding-ui {
+    display: inline-flex;
+    min-height: 2.375rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.875rem;
+    font-size: 0.8125rem;
+    font-weight: 800;
+    line-height: 1.1;
+    transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+  }
+
+  .global-tran-tab-text_active-ui {
+    border: 1px solid #1d4ed8;
+    background: #1d4ed8;
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(29, 78, 216, 0.2);
+  }
+
+  .global-tran-textbox-ui {
+    min-height: 2.75rem;
+    width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    padding: 1rem 0.75rem 0.35rem;
+    font-size: 0.875rem;
+    color: #0f172a;
+    outline: none;
+    transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+  }
+
+  .global-tran-textbox-ui:focus {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+  }
+
+  .global-tran-textbox-ui:disabled,
+  .global-tran-textbox-ui[readonly] {
+    background: #f8fafc;
+    color: #334155;
+  }
+
+  .global-tran-floating-label {
+    pointer-events: none;
+    position: absolute;
+    left: 1rem;
+    top: 0.42rem;
+    max-width: calc(100% - 2rem);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.625rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+
+  .global-tran-table-main-div-ui {
+    border-radius: 0.5rem;
+    border: 1px solid #dbe3ef;
+    background: #fff;
+  }
+
+  .global-tran-table-main-sub-div-ui {
+    overflow: auto;
+    border-radius: 0.5rem;
+  }
+
+  .global-tran-thead-div-ui {
+    background: #dbeafe;
+    color: #0f172a;
+  }
+
+  .global-tran-th-ui {
+    padding: 0.625rem 0.5rem;
+    font-size: 0.6875rem;
+    font-weight: 900;
+    line-height: 1.15;
+    text-transform: uppercase;
+    color: #1e3a8a;
+  }
+
+  .global-tran-td-ui {
+    padding: 0.45rem 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.25;
+    color: #334155;
+    vertical-align: middle;
+  }
+
+  .global-tran-tr-ui {
+    background: #fff;
+  }
+
+  .global-tran-tr-ui:hover {
+    background: #f8fafc;
+  }
+
+  .global-tran-tab-footer-button-div-ui {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .global-tran-tab-footer-total-main-div-ui {
+    border: 1px solid #dbeafe;
+  }
+
+  .global-tran-tab-footer-total-div-ui {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .global-tran-tab-footer-total-label-ui {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #475569;
+  }
+
+  .global-tran-tab-footer-total-value-ui {
+    font-size: 0.875rem;
+    font-weight: 900;
+    color: #1d4ed8;
+  }
+
+  .global-tran-stat-text-finalized-ui {
+    color: #15803d;
+  }
+
+  .global-tran-stat-text-closed-ui {
+    color: #b91c1c;
+  }
 }

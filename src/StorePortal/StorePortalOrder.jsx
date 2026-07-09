@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Building2,
@@ -11,10 +10,10 @@ import {
   Send,
   UserRound,
 } from "lucide-react";
+import { fetchData, postRequest } from "./api";
 
-import { fetchData, postRequest } from "../../../Configuration/BaseURL.jsx";
-import { useAuth } from "@/NAYSA Cloud/Authentication/AuthContext.jsx";
-import { LoadingSpinner } from "@/NAYSA Cloud/Global/utilities.jsx";
+// import { fetchData, postRequest } from "../../../Configuration/BaseURL.jsx";
+
 
 const formatDate = (date) => {
   const d = new Date(date);
@@ -485,7 +484,7 @@ const focusNextQuantityInput = (event) => {
       (input.offsetWidth > 0 || input.offsetHeight > 0 || input.getClientRects().length > 0),
   );
 
-  let nextInput = null;
+  let nextInput;
 
   if (currentGroup && currentCol !== undefined && Number.isFinite(currentRow)) {
     nextInput = quantityInputs
@@ -588,8 +587,22 @@ const Toast = ({ toast }) => {
   );
 };
 
-export default function StorePortalOrder() {
-  const { currentUserRow, refsLoading, user } = useAuth();
+const LoadingSpinner = () => (
+  <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-slate-950/20 backdrop-blur-[1px]">
+    <div className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-xl dark:border-slate-700 dark:bg-gray-900 dark:text-slate-100">
+      <RefreshCw className="h-4 w-4 animate-spin text-blue-600" />
+      Loading...
+    </div>
+  </div>
+);
+
+export default function StorePortalOrder({ user: authUser }) {
+  const refsLoading = false;
+  const currentUserRow = useMemo(() => {
+    const source = authUser?.user ?? authUser?.data ?? authUser;
+    return Array.isArray(source) ? source[0] || {} : source || {};
+  }, [authUser]);
+  const user = authUser;
 
   const userCode = useMemo(() => getCurrentUserCode(currentUserRow, user), [currentUserRow, user]);
   const userName = useMemo(() => getCurrentUserName(currentUserRow, user), [currentUserRow, user]);
@@ -950,30 +963,31 @@ export default function StorePortalOrder() {
 
       setForecastLoading(true);
       try {
-        const itemResponse = await fetchData("store-portal/items", {
-          userCode,
-          storeCode,
-        });
-
-        const loadedItems = mergeUniqueItems(unwrapDataArray(itemResponse));
-        const itemStoreType = loadedItems.find((item) => item.storeType)?.storeType;
-        if (itemStoreType) setStoreType(itemStoreType);
-
-        let savedForecastRows = [];
-
-        try {
-          const forecastResponse = await fetchData("store-portal/weekly-forecast", {
+        const [itemResponse, forecastResponse] = await Promise.all([
+          fetchData("store-portal/items", { userCode, storeCode }),
+          fetchData("store-portal/weekly-forecast", {
             userCode,
             storeCode,
             startDate,
             endDate,
             orderType: "WeeklyForecast",
-          });
+          }).catch((forecastError) => {
+            // Allow item loading to succeed even if forecast loading fails
+            console.warn("Items loaded, but existing Order Forecast quantities were not retrieved:", forecastError);
+            if (!silent) {
+              showToast("Failed to load existing forecast quantities.", "error");
+            }
+            return null; // Return null to indicate failure
+          }),
+        ]);
 
-          savedForecastRows = unwrapDataArray(forecastResponse).map(normalizeForecastRow);
-        } catch (forecastError) {
-          console.warn("Items loaded, but existing Order Forecast quantities were not retrieved:", forecastError);
-        }
+        const loadedItems = mergeUniqueItems(unwrapDataArray(itemResponse));
+        const itemStoreType = loadedItems.find((item) => item.storeType)?.storeType;
+        if (itemStoreType) setStoreType(itemStoreType);
+
+        const savedForecastRows = forecastResponse
+          ? unwrapDataArray(forecastResponse).map(normalizeForecastRow)
+          : [];
 
         const nextOrderMatrix = buildOrderMatrix(loadedItems, savedForecastRows, dates);
         const nextConfirmedMatrix = buildConfirmedMatrix(loadedItems, savedForecastRows, dates);
@@ -1000,8 +1014,8 @@ export default function StorePortalOrder() {
       } finally {
         setForecastLoading(false);
       }
-    },
-    [dates, endDate, hasTaggedBranch, showToast, startDate, storeCode, userCode],
+    }, // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hasTaggedBranch, storeCode, userCode, startDate, endDate, showToast],
   );
 
   const loadHistory = useCallback(
@@ -1051,10 +1065,10 @@ export default function StorePortalOrder() {
   );
 
   useEffect(() => {
-    if (forecastView === "entry") {
-      loadItems({ silent: true });
-    }
-  }, [forecastView, loadItems]);
+    // Initial load for the forecast entry view
+    loadItems({ silent: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, endDate, storeCode]); // Reload when primary filters change
 
   useEffect(() => {
     if (forecastView === "history") {
@@ -1335,7 +1349,7 @@ export default function StorePortalOrder() {
       {isBusy && <LoadingSpinner />}
       <Toast toast={toast} />
 
-      <div className="fixed left-2 right-2 top-[54px] z-[20] flex max-w-[calc(100vw-1rem)] flex-col gap-2 rounded-lg bg-gradient-to-r from-blue-200 to-blue-100 p-2 text-blue-900 shadow-xl dark:bg-blue-900 dark:text-white sm:left-4 sm:right-4 sm:top-[62px] sm:max-w-none sm:flex-row sm:items-center sm:justify-between md:left-6 md:right-6">
+      <div className="fixed left-[4.5rem] right-2 top-[54px] z-[20] flex max-w-[calc(100vw-1rem)] flex-col gap-2 rounded-lg bg-gradient-to-r from-blue-200 to-blue-100 p-2 text-blue-900 shadow-xl dark:bg-blue-900 dark:text-white sm:left-20 sm:right-4 sm:top-[62px] sm:max-w-none sm:flex-row sm:items-center sm:justify-between md:left-[17rem] md:right-4">
         <div className="min-w-0 text-center sm:text-left">
           <h1 className="break-words px-1 text-base font-semibold leading-tight sm:px-3 sm:text-xl lg:text-2xl">
             Store Portal Ordering
