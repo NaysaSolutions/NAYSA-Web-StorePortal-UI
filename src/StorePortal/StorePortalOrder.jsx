@@ -260,6 +260,8 @@ const normalizeItemRow = (row = {}) => ({
 const normalizeForecastRow = (row = {}) => ({
   ...row,
   forecastId: getRowValue(row, ["forecastId", "FORECAST_ID", "forecast_id", "ORDER_ID", "orderId"]),
+  detailId: getRowValue(row, ["detailId", "DETAIL_ID", "detail_id", "DT1_ID", "dt1Id"]),
+  weeklyForecastNo: getRowValue(row, ["weeklyForecastNo", "WEEKLY_FORECAST_NO", "ORDER_NO", "orderNo"], ""),
   itemCode: getRowValue(row, ["itemCode", "ITEM_CODE", "item_code", "ItemCode", "ITEM_NO", "itemNo"]),
   itemName: getRowValue(row, ["itemName", "ITEM_NAME", "item_name", "ItemName", "ITEM_DESC", "itemDesc"]),
   categCode: getRowValue(row, ["categCode", "CATEG_CODE", "categ_code", "CategCode", "CATEGORY_CODE", "categoryCode"], ""),
@@ -276,7 +278,105 @@ const normalizeForecastRow = (row = {}) => ({
   confirmed: toBoolean(row.confirmed ?? row.CONFIRMED ?? row.isConfirmed ?? row.IS_CONFIRMED),
   confirmedBy: getRowValue(row, ["confirmedBy", "CONFIRMED_BY", "confirmed_by"], ""),
   confirmedDate: normalizeDate(row.confirmedDate ?? row.CONFIRMED_DATE ?? row.confirmed_date),
+  revisionDate: normalizeDate(
+    row.revisionDate ?? row.REVISION_DATE ?? row.revision_date ?? row.DATE_STAMP ?? row.dateStamp,
+  ),
+  revisionTime: getRowValue(row, ["revisionTime", "REVISION_TIME", "revision_time", "TIME_STAMP", "timeStamp"], ""),
+  revisionUser: getRowValue(row, ["revisionUser", "REVISION_USER", "revision_user", "USER_CODE", "userCode"], ""),
 });
+
+const toRevisionNumber = (value) => {
+  if (value === null || value === undefined || value === "") return null;
+
+  const numericValue = Number(value);
+  if (Number.isFinite(numericValue)) return numericValue;
+
+  const trailingNumber = String(value).match(/(\d+)\s*$/);
+  return trailingNumber ? Number(trailingNumber[1]) : null;
+};
+
+const getRevisionTimestamp = (row = {}) => {
+  const date = row.revisionDate || row.confirmedDate || "";
+  const time = row.revisionTime || "00:00:00";
+  const timestamp = Date.parse(`${date}T${time}`);
+
+  return Number.isNaN(timestamp) ? null : timestamp;
+};
+
+// Returns a positive value when left is the newer saved forecast revision.
+const compareForecastRevisions = (left = {}, right = {}) => {
+  const comparableFields = ["forecastId", "detailId", "weeklyForecastNo"];
+
+  for (const field of comparableFields) {
+    const leftValue = toRevisionNumber(left[field]);
+    const rightValue = toRevisionNumber(right[field]);
+
+    if (leftValue !== null && rightValue !== null && leftValue !== rightValue) {
+      return leftValue - rightValue;
+    }
+  }
+
+  const leftTimestamp = getRevisionTimestamp(left);
+  const rightTimestamp = getRevisionTimestamp(right);
+  if (leftTimestamp !== null && rightTimestamp !== null && leftTimestamp !== rightTimestamp) {
+    return leftTimestamp - rightTimestamp;
+  }
+
+  return 0;
+};
+
+const selectLatestForecastRows = (rows = []) => {
+  const latestRows = new Map();
+
+  rows.forEach((row) => {
+    if (!row.itemCode || !row.deliveryDate) return;
+
+    const key = `${row.itemCode}::${row.deliveryDate}`;
+    const current = latestRows.get(key);
+
+    // Keep the first row on an exact tie because the API normally returns
+    // newest rows first. A larger forecast/detail id always wins.
+    if (!current || compareForecastRevisions(row, current) > 0) {
+      latestRows.set(key, row);
+    }
+  });
+
+  return Array.from(latestRows.values());
+};
+
+const annotateHistoryRevisions = (rows = []) => {
+  const groupedRows = new Map();
+
+  rows.forEach((row, sourceIndex) => {
+    const key = `${row.itemCode}::${row.deliveryDate}`;
+    if (!groupedRows.has(key)) groupedRows.set(key, []);
+    groupedRows.get(key).push({ ...row, __sourceIndex: sourceIndex });
+  });
+
+  return Array.from(groupedRows.values()).flatMap((group) => {
+    const sortedGroup = [...group].sort((left, right) => {
+      const revisionCompare = compareForecastRevisions(left, right);
+      if (revisionCompare !== 0) return revisionCompare;
+
+      // When revision identifiers are unavailable, history endpoints normally
+      // return newest first, so reverse the source order to number oldest first.
+      return right.__sourceIndex - left.__sourceIndex;
+    });
+
+    return sortedGroup.map((row, index) => {
+      const previousQty = index > 0 ? toNumber(sortedGroup[index - 1].originalWeeklyQty) : 0;
+      const currentQty = toNumber(row.originalWeeklyQty);
+
+      return {
+        ...row,
+        revisionNo: index + 1,
+        previousWeeklyQty: previousQty,
+        quantityChange: currentQty - previousQty,
+        isLatestRevision: index === sortedGroup.length - 1,
+      };
+    });
+  });
+};
 
 const normalizeConfirmationRow = (row = {}, fallbackDate = "") => {
   const normalized = normalizeForecastRow(row);
@@ -290,7 +390,6 @@ const normalizeConfirmationRow = (row = {}, fallbackDate = "") => {
 
 const normalizeHistoryRow = (row = {}) => ({
   ...normalizeForecastRow(row),
-  weeklyForecastNo: getRowValue(row, ["weeklyForecastNo", "WEEKLY_FORECAST_NO", "ORDER_NO", "orderNo"], ""),
   originalWeeklyQty: toNumber(
     row.originalWeeklyQty ??
       row.ORIGINAL_WEEKLY_QTY ??
@@ -344,7 +443,7 @@ const buildOrderMatrix = (loadedItems, savedForecastRows, forecastDates) => {
     });
   });
 
-  savedForecastRows.forEach((row) => {
+  selectLatestForecastRows(savedForecastRows).forEach((row) => {
     if (!row.itemCode || !row.deliveryDate || !matrix[row.itemCode]) return;
     if (!forecastDates.includes(row.deliveryDate)) return;
 
@@ -368,7 +467,7 @@ const buildConfirmedMatrix = (loadedItems, savedForecastRows, forecastDates) => 
     });
   });
 
-  savedForecastRows.forEach((row) => {
+  selectLatestForecastRows(savedForecastRows).forEach((row) => {
     if (!row.itemCode || !row.deliveryDate || !matrix[row.itemCode]) return;
     if (!forecastDates.includes(row.deliveryDate)) return;
 
@@ -620,6 +719,7 @@ export default function StorePortalOrder({ user: authUser }) {
   const [items, setItems] = useState([]);
   const [orderMatrix, setOrderMatrix] = useState({});
   const [loadedOrderMatrix, setLoadedOrderMatrix] = useState({});
+  const [editedForecastCells, setEditedForecastCells] = useState({});
   const [confirmedMatrix, setConfirmedMatrix] = useState({});
   const [forecastLoading, setForecastLoading] = useState(false);
   const [forecastSubmitting, setForecastSubmitting] = useState(false);
@@ -986,6 +1086,7 @@ export default function StorePortalOrder({ user: authUser }) {
         setItems([]);
         setOrderMatrix({});
         setLoadedOrderMatrix({});
+        setEditedForecastCells({});
         setConfirmedMatrix({});
         if (!silent) showToast("No branch is tagged to the logged-in user account.", "error");
         return;
@@ -997,6 +1098,7 @@ export default function StorePortalOrder({ user: authUser }) {
         setItems([]);
         setOrderMatrix({});
         setLoadedOrderMatrix({});
+        setEditedForecastCells({});
         setConfirmedMatrix({});
         if (!silent) showToast("Please select a valid forecast date range.", "error");
         return;
@@ -1042,6 +1144,7 @@ export default function StorePortalOrder({ user: authUser }) {
         setItems(loadedItems);
         setOrderMatrix(nextOrderMatrix);
         setLoadedOrderMatrix(cloneMatrix(nextOrderMatrix));
+        setEditedForecastCells({});
         setConfirmedMatrix(nextConfirmedMatrix);
 
         if (!silent) {
@@ -1058,6 +1161,7 @@ export default function StorePortalOrder({ user: authUser }) {
         setItems([]);
         setOrderMatrix({});
         setLoadedOrderMatrix({});
+        setEditedForecastCells({});
         setConfirmedMatrix({});
         if (!silent) showToast("Unable to load store items.", "error");
       } finally {
@@ -1092,13 +1196,13 @@ export default function StorePortalOrder({ user: authUser }) {
           endDate,
         });
 
-        const rows = unwrapDataArray(historyResponse)
+        const rows = annotateHistoryRevisions(
+          unwrapDataArray(historyResponse)
           .map(normalizeHistoryRow)
-          .filter(
-            (row) =>
-              row.itemCode &&
-              (toNumber(row.originalWeeklyQty) > 0 || toNumber(row.confirmedOrderQty) > 0 || toBoolean(row.confirmed)),
-          );
+          // Keep zero-quantity revisions so a change such as 10 -> 0 remains
+          // visible in history and is not mistaken for a deleted record.
+          .filter((row) => row.itemCode),
+        );
 
         setHistoryRows(rows);
         if (!silent) {
@@ -1139,13 +1243,26 @@ export default function StorePortalOrder({ user: authUser }) {
     [confirmedMatrix],
   );
 
+  const isForecastCellLocked = useCallback(
+    (itemCode, date) => {
+      // A quantity for the current date must still be accepted. Older/future
+      // confirmed rows stay locked to preserve the confirmed order.
+      const isCurrentDate = date === formatDate(new Date());
+      return isForecastCellConfirmed(itemCode, date) && !isCurrentDate;
+    },
+    [isForecastCellConfirmed],
+  );
+
   const resetWeeklyForecast = () => {
     setOrderMatrix(cloneMatrix(loadedOrderMatrix));
+    setEditedForecastCells({});
     showToast("Order Forecast reset to the last loaded values.");
   };
 
   const handleQtyChange = (itemCode, date, value) => {
-    if (isForecastCellConfirmed(itemCode, date)) return;
+    if (isForecastCellLocked(itemCode, date)) return;
+
+    const isEdited = toNumber(value) !== toNumber(loadedOrderMatrix[itemCode]?.[date]);
 
     setOrderMatrix((prev) => ({
       ...prev,
@@ -1155,6 +1272,25 @@ export default function StorePortalOrder({ user: authUser }) {
         [date]: value,
       },
     }));
+
+    setEditedForecastCells((prev) => {
+      const itemChanges = { ...(prev[itemCode] || {}) };
+
+      if (isEdited) {
+        itemChanges[date] = true;
+      } else {
+        delete itemChanges[date];
+      }
+
+      const next = { ...prev };
+      if (Object.keys(itemChanges).length > 0) {
+        next[itemCode] = itemChanges;
+      } else {
+        delete next[itemCode];
+      }
+
+      return next;
+    });
   };
 
   const submitWeeklyForecast = async () => {
@@ -1175,23 +1311,19 @@ export default function StorePortalOrder({ user: authUser }) {
 
     const safeUserCode = userCode || userName || "SYSTEM";
     const details = [];
-    let hasForecastChanges = false;
 
     items.forEach((item) => {
       if (!item.itemCode) return;
 
       dates.forEach((date) => {
-        if (isForecastCellConfirmed(item.itemCode, date)) return;
+        if (!editedForecastCells[item.itemCode]?.[date]) return;
+        if (isForecastCellLocked(item.itemCode, date)) return;
 
         const rawQty = orderMatrix[item.itemCode]?.[date];
         const orderQty = toNumber(rawQty);
         const loadedQty = toNumber(loadedOrderMatrix[item.itemCode]?.[date]);
 
-        if (orderQty !== loadedQty) {
-          hasForecastChanges = true;
-        }
-
-        if (orderQty <= 0) return;
+        if (orderQty === loadedQty) return;
 
         details.push({
           itemCode: item.itemCode,
@@ -1200,12 +1332,14 @@ export default function StorePortalOrder({ user: authUser }) {
           uomCode: item.uomCode || "",
           deliveryDate: date,
           orderQty,
+          previousOrderQty: loadedQty,
+          isEdited: true,
         });
       });
     });
 
-    if (details.length === 0 && !hasForecastChanges) {
-      showToast("Enter at least one forecast quantity before submitting.", "error");
+    if (details.length === 0) {
+      showToast("No forecast quantity changes to submit.", "error");
       return;
     }
 
@@ -1215,13 +1349,17 @@ export default function StorePortalOrder({ user: authUser }) {
       startDate,
       endDate,
       orderType: "WeeklyForecast",
+      changedOnly: true,
       details,
     };
 
     setForecastSubmitting(true);
     try {
       const res = await postRequest("store-portal/weekly-forecast", payload);
-      setLoadedOrderMatrix(cloneMatrix(orderMatrix));
+      // Reload from SQL instead of assuming that the submitted value was saved.
+      // This also prevents Load Items from restoring an older cached quantity.
+      await loadItems({ silent: true });
+      setEditedForecastCells({});
       showToast(res?.message || "Order Forecast submitted successfully.");
     } catch (error) {
       console.error("Failed to submit Order Forecast:", error?.response?.data || error);
@@ -1615,6 +1753,7 @@ return (
                       <div className="divide-y divide-slate-100 dark:divide-slate-700">
                         {dates.map((date, dateIndex) => {
                           const isConfirmed = isForecastCellConfirmed(item.itemCode, date);
+                          const isLocked = isForecastCellLocked(item.itemCode, date);
 
                           return (
                             <div
@@ -1639,7 +1778,7 @@ return (
                                 <QuantityInput
                                   value={orderMatrix[item.itemCode]?.[date] ?? 0}
                                   onChange={(value) => handleQtyChange(item.itemCode, date, value)}
-                                  disabled={isConfirmed}
+                                  disabled={isLocked}
                                   navGroup="weekly-mobile"
                                   navRow={(item.__displayIndex || 0) * dates.length + dateIndex}
                                   navCol={0}
@@ -1749,7 +1888,7 @@ return (
                                 <QuantityInput
                                   value={orderMatrix[item.itemCode]?.[date] ?? 0}
                                   onChange={(value) => handleQtyChange(item.itemCode, date, value)}
-                                  disabled={isForecastCellConfirmed(item.itemCode, date)}
+                                  disabled={isForecastCellLocked(item.itemCode, date)}
                                   navGroup="weekly"
                                   navRow={item.__displayIndex || 0}
                                   navCol={dateIndex}
@@ -1852,7 +1991,7 @@ return (
                     {!isCollapsed &&
                       group.rows.map((row) => (
                         <div
-                          key={`${row.itemCode || "item"}-${row.deliveryDate || row.__displayIndex}-history-card`}
+                          key={`${row.itemCode || "item"}-${row.deliveryDate || "date"}-${row.forecastId || row.detailId || row.weeklyForecastNo || row.__displayIndex}-history-card`}
                           className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-gray-800"
                         >
                           <div className="flex items-start justify-between gap-3 border-b border-slate-100 bg-blue-50 px-3 py-2 dark:border-slate-700 dark:bg-blue-900/30">
@@ -1879,11 +2018,25 @@ return (
                             </div>
                             <div>
                               <div className="font-bold uppercase text-slate-500 dark:text-slate-300">Status</div>
-                              <div className="font-semibold text-slate-900 dark:text-white">{row.status}</div>
+                              <div className="font-semibold text-slate-900 dark:text-white">
+                                {row.status}{row.isLatestRevision ? " • Latest" : ""}
+                              </div>
                             </div>
                             <div>
-                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">Original Qty</div>
+                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">Revision</div>
+                              <div className="font-semibold text-slate-900 dark:text-white">R{row.revisionNo || 1}</div>
+                            </div>
+                            <div>
+                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">Previous Qty</div>
+                              <div className="font-semibold text-slate-900 dark:text-white">{toNumber(row.previousWeeklyQty).toLocaleString()}</div>
+                            </div>
+                            <div>
+                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">Forecast Qty</div>
                               <div className="font-semibold text-slate-900 dark:text-white">{toNumber(row.originalWeeklyQty).toLocaleString()}</div>
+                            </div>
+                            <div>
+                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">Qty Change</div>
+                              <div className="font-semibold text-slate-900 dark:text-white">{toNumber(row.quantityChange).toLocaleString()}</div>
                             </div>
                             <div>
                               <div className="font-bold uppercase text-slate-500 dark:text-slate-300">Confirmed Order</div>
@@ -1924,7 +2077,10 @@ return (
                       <th className="global-tran-th-ui sticky left-[336px] top-0 z-[240] w-[100px] min-w-[100px] max-w-[100px] bg-blue-100 text-left dark:bg-blue-900">Category</th>
                       <th className="global-tran-th-ui sticky left-[436px] top-0 z-[240] w-[72px] min-w-[72px] max-w-[72px] bg-blue-100 text-center shadow-[2px_0_0_0_rgba(226,232,240,1)] dark:bg-blue-900">UOM</th>
                       <th className="global-tran-th-ui sticky top-0 z-[210] w-[120px] min-w-[120px] max-w-[120px] bg-blue-100 text-left dark:bg-blue-900">Delivery Date</th>
-                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[130px] min-w-[130px] max-w-[130px] bg-blue-100 text-right dark:bg-blue-900">Original Qty</th>
+                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[90px] min-w-[90px] max-w-[90px] bg-blue-100 text-center dark:bg-blue-900">Revision</th>
+                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[120px] min-w-[120px] max-w-[120px] bg-blue-100 text-right dark:bg-blue-900">Previous Qty</th>
+                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[130px] min-w-[130px] max-w-[130px] bg-blue-100 text-right dark:bg-blue-900">Forecast Qty</th>
+                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[110px] min-w-[110px] max-w-[110px] bg-blue-100 text-right dark:bg-blue-900">Qty Change</th>
                       <th className="global-tran-th-ui sticky top-0 z-[210] w-[140px] min-w-[140px] max-w-[140px] bg-blue-100 text-right dark:bg-blue-900">Confirmed Order</th>
                       <th className="global-tran-th-ui sticky top-0 z-[210] w-[110px] min-w-[110px] max-w-[110px] bg-blue-100 text-right dark:bg-blue-900">Variance</th>
                       <th className="global-tran-th-ui sticky top-0 z-[210] w-[120px] min-w-[120px] max-w-[120px] bg-blue-100 text-left dark:bg-blue-900">Status</th>
@@ -1940,7 +2096,7 @@ return (
                       return (
                         <Fragment key={`${group.category}-history-table-group`}>
                           <tr className="bg-blue-50/80 dark:bg-blue-900/30">
-                            <td colSpan={11} className="global-tran-td-ui !p-0">
+                            <td colSpan={14} className="global-tran-td-ui !p-0">
                               <button
                                 type="button"
                                 onClick={() => toggleHistoryCategoryCollapse(group.category)}
@@ -1964,7 +2120,7 @@ return (
 
                           {!isCollapsed &&
                             group.rows.map((row) => (
-                              <tr key={`${row.itemCode || "item"}-${row.deliveryDate || row.__displayIndex}-history`} className="global-tran-tr-ui">
+                              <tr key={`${row.itemCode || "item"}-${row.deliveryDate || "date"}-${row.forecastId || row.detailId || row.weeklyForecastNo || row.__displayIndex}-history`} className="global-tran-tr-ui">
                                 <td className="global-tran-td-ui sticky left-0 z-[40] w-[96px] min-w-[96px] max-w-[96px] overflow-hidden text-ellipsis whitespace-nowrap bg-white font-mono font-semibold dark:bg-black">{row.itemCode}</td>
                                 <td className="global-tran-td-ui sticky left-[96px] z-[40] w-[240px] min-w-[240px] max-w-[240px] bg-white font-medium dark:bg-black">
                                   <span className="block truncate">{row.itemName}</span>
@@ -1972,7 +2128,12 @@ return (
                                 <td className="global-tran-td-ui sticky left-[336px] z-[40] w-[100px] min-w-[100px] max-w-[100px] overflow-hidden text-ellipsis whitespace-nowrap bg-white text-xs font-semibold text-slate-700 dark:bg-black dark:text-slate-200">{row.categCode || "-"}</td>
                                 <td className="global-tran-td-ui sticky left-[436px] z-[40] w-[72px] min-w-[72px] max-w-[72px] bg-white text-center shadow-[2px_0_0_0_rgba(226,232,240,1)] dark:bg-black">{row.uomCode || "-"}</td>
                                 <td className="global-tran-td-ui w-[120px] min-w-[120px] max-w-[120px] text-left">{row.deliveryDate}</td>
+                                <td className="global-tran-td-ui w-[90px] min-w-[90px] max-w-[90px] text-center font-semibold">
+                                  R{row.revisionNo || 1}{row.isLatestRevision ? " • Latest" : ""}
+                                </td>
+                                <td className="global-tran-td-ui w-[120px] min-w-[120px] max-w-[120px] text-right font-semibold">{toNumber(row.previousWeeklyQty).toLocaleString()}</td>
                                 <td className="global-tran-td-ui w-[130px] min-w-[130px] max-w-[130px] text-right font-semibold">{toNumber(row.originalWeeklyQty).toLocaleString()}</td>
+                                <td className="global-tran-td-ui w-[110px] min-w-[110px] max-w-[110px] text-right font-semibold">{toNumber(row.quantityChange).toLocaleString()}</td>
                                 <td className="global-tran-td-ui w-[140px] min-w-[140px] max-w-[140px] text-right font-semibold text-green-700 dark:text-green-200">{toNumber(row.confirmedOrderQty).toLocaleString()}</td>
                                 <td className="global-tran-td-ui w-[110px] min-w-[110px] max-w-[110px] text-right font-semibold">{toNumber(row.balanceQty).toLocaleString()}</td>
                                 <td className="global-tran-td-ui w-[120px] min-w-[120px] max-w-[120px] text-left">{row.status}</td>
@@ -1986,7 +2147,7 @@ return (
 
                     {filteredHistoryRows.length === 0 && (
                       <tr>
-                        <td colSpan={11} className="global-tran-td-ui py-10 text-center text-sm text-slate-500">
+                        <td colSpan={14} className="global-tran-td-ui py-10 text-center text-sm text-slate-500">
                           <div className="flex flex-col items-center justify-center gap-2">
                             <PackageOpen className="h-8 w-8 text-slate-400" />
                             <span>{hasTaggedBranch ? (historyRows.length > 0 ? "No history lines found for the selected category." : "No Order Forecast history loaded.") : "Assign a branch to this user before ordering."}</span>
