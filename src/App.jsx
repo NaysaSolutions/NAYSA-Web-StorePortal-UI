@@ -1,17 +1,36 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Building2, LogOut, Menu, ShieldAlert, Store, X } from "lucide-react";
+import {
+  Building2,
+  CheckCircle2,
+  ClipboardList,
+  LogOut,
+  Menu,
+  ShieldAlert,
+  X,
+} from "lucide-react";
 import Login from "./StorePortal/Login";
 import { apiUrl } from "./StorePortal/api";
 
 const StorePortal = lazy(() => import("./StorePortal/StorePortalOrder"));
+const DailyOrderConfirmation = lazy(
+  () => import("./StorePortal/DailyOrderConfirmation"),
+);
 
 const MENU_ITEMS = [
   {
-    id: "store-portal",
-    label: "Store Portal",
+    id: "order-forecast",
+    label: "Order Forecast",
     group: "Other Module",
-    icon: Store,
+    icon: ClipboardList,
+    moduleId: "store-portal",
+  },
+  {
+    id: "daily-order-confirmation",
+    label: "Daily Order Confirmation",
+    group: "Other Module",
+    icon: CheckCircle2,
+    moduleId: "store-portal",
   },
 ];
 
@@ -161,7 +180,9 @@ const getAllowedModuleIds = (user) => {
 const getAllowedMenuItems = (user) => {
   const allowedModules = getAllowedModuleIds(user);
 
-  return MENU_ITEMS.filter((item) => allowedModules.includes(item.id));
+  return MENU_ITEMS.filter((item) =>
+    allowedModules.includes(item.moduleId || item.id),
+  );
 };
 
 const getStoredMenu = () => localStorage.getItem("activeMenu") || "";
@@ -595,7 +616,12 @@ export default function App() {
             className="min-h-screen"
           >
             <Suspense fallback={<PageFallback />}>
-              {resolvedActiveMenu === "store-portal" && <StorePortal user={authUser} />}
+              {resolvedActiveMenu === "order-forecast" && (
+                <StorePortal user={authUser} />
+              )}
+              {resolvedActiveMenu === "daily-order-confirmation" && (
+                <DailyOrderConfirmation user={authUser} />
+              )}
               {!resolvedActiveMenu && <NoModuleAccess isLoading={accessRefreshing} onLogout={handleLogout} />}
             </Suspense>
           </motion.div>

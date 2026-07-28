@@ -1,7 +1,13 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Building2,
-  CheckCircle2,
   ChevronDown,
   Clock3,
   PackageOpen,
@@ -13,7 +19,6 @@ import {
 import { fetchData, postRequest } from "./api";
 
 // import { fetchData, postRequest } from "../../../Configuration/BaseURL.jsx";
-
 
 const formatDate = (date) => {
   const d = new Date(date);
@@ -31,7 +36,11 @@ const getDateRange = (start, end) => {
   const current = new Date(`${start}T00:00:00`);
   const last = new Date(`${end}T00:00:00`);
 
-  if (Number.isNaN(current.getTime()) || Number.isNaN(last.getTime()) || current > last) {
+  if (
+    Number.isNaN(current.getTime()) ||
+    Number.isNaN(last.getTime()) ||
+    current > last
+  ) {
     return [];
   }
 
@@ -41,12 +50,6 @@ const getDateRange = (start, end) => {
   }
 
   return dates;
-};
-
-const tomorrowDate = () => {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return formatDate(d);
 };
 
 const defaultForecastStartDate = () => formatDate(new Date());
@@ -131,7 +134,15 @@ const getCurrentUserCode = (currentUserRow, user) =>
 const getCurrentUserName = (currentUserRow, user) =>
   getRowValue(
     currentUserRow,
-    ["userName", "USER_NAME", "user_name", "UserName", "name", "fullName", "FULL_NAME"],
+    [
+      "userName",
+      "USER_NAME",
+      "user_name",
+      "UserName",
+      "name",
+      "fullName",
+      "FULL_NAME",
+    ],
     getRowValue(user, ["USER_NAME", "name", "fullName"], ""),
   );
 
@@ -154,7 +165,6 @@ const getCurrentUserBranchName = (currentUserRow) =>
     "branchDesc",
     "BRANCH_DESC",
   ]);
-
 
 const unwrapDataArray = (response) => {
   const raw =
@@ -190,7 +200,6 @@ const unwrapDataArray = (response) => {
   return [];
 };
 
-
 const normalizeDate = (value) => {
   if (!value) return "";
 
@@ -210,14 +219,32 @@ const toNumber = (value) => {
 const toBoolean = (value) =>
   value === true ||
   value === 1 ||
-  ["1", "true", "y", "yes"].includes(String(value ?? "").trim().toLowerCase());
+  ["1", "true", "y", "yes"].includes(
+    String(value ?? "")
+      .trim()
+      .toLowerCase(),
+  );
 
 const getCategoryLabel = (item = {}) => {
-  const category = String(item?.categCode ?? "").trim();
-  return category || "Uncategorized";
+  const categoryName = getRowValue(item, [
+    "categDesc",
+    "CATEG_DESC",
+    "categ_desc",
+    "categName",
+    "CATEG_NAME",
+    "categoryName",
+    "CATEGORY_NAME",
+    "categoryDesc",
+    "CATEGORY_DESC",
+  ]);
+  const categoryCode = String(item?.categCode ?? "").trim();
+  return categoryName || categoryCode || "Uncategorized";
 };
 
-const getApiErrorMessage = (error, fallback = "Unable to complete request.") => {
+const getApiErrorMessage = (
+  error,
+  fallback = "Unable to complete request.",
+) => {
   const data = error?.response?.data;
 
   if (typeof data?.message === "string" && data.message.trim()) {
@@ -249,23 +276,141 @@ const getApiErrorMessage = (error, fallback = "Unable to complete request.") => 
 
 const normalizeItemRow = (row = {}) => ({
   ...row,
-  itemCode: getRowValue(row, ["itemCode", "ITEM_CODE", "item_code", "ItemCode", "ITEM_NO", "itemNo"]),
-  itemName: getRowValue(row, ["itemName", "ITEM_NAME", "item_name", "ItemName", "ITEM_DESC", "itemDesc"]),
-  categCode: getRowValue(row, ["categCode", "CATEG_CODE", "categ_code", "CategCode", "CATEGORY_CODE", "categoryCode"], ""),
-  uomCode: getRowValue(row, ["uomCode", "UOM_CODE", "uom_code", "UomCode", "UOM", "uom"]),
-  storeItemTag: getRowValue(row, ["storeItemTag", "STORE_ITEM_TAG", "store_item_tag", "itemAvailability"], ""),
-  storeType: getRowValue(row, ["storeType", "STORE_TYPE", "store_type", "branchStoreType"], ""),
+  itemCode: getRowValue(row, [
+    "itemCode",
+    "ITEM_CODE",
+    "item_code",
+    "ItemCode",
+    "ITEM_NO",
+    "itemNo",
+  ]),
+  itemName: getRowValue(row, [
+    "itemName",
+    "ITEM_NAME",
+    "item_name",
+    "ItemName",
+    "ITEM_DESC",
+    "itemDesc",
+  ]),
+  categCode: getRowValue(
+    row,
+    [
+      "categCode",
+      "CATEG_CODE",
+      "categ_code",
+      "CategCode",
+      "CATEGORY_CODE",
+      "categoryCode",
+    ],
+    "",
+  ),
+  categDesc: getRowValue(
+    row,
+    [
+      "categDesc",
+      "CATEG_DESC",
+      "categ_desc",
+      "categName",
+      "CATEG_NAME",
+      "categoryName",
+      "CATEGORY_NAME",
+      "categoryDesc",
+      "CATEGORY_DESC",
+    ],
+    "",
+  ),
+  uomCode: getRowValue(row, [
+    "uomCode",
+    "UOM_CODE",
+    "uom_code",
+    "UomCode",
+    "UOM",
+    "uom",
+  ]),
+  storeItemTag: getRowValue(
+    row,
+    ["storeItemTag", "STORE_ITEM_TAG", "store_item_tag", "itemAvailability"],
+    "",
+  ),
+  storeType: getRowValue(
+    row,
+    ["storeType", "STORE_TYPE", "store_type", "branchStoreType"],
+    "",
+  ),
 });
 
 const normalizeForecastRow = (row = {}) => ({
   ...row,
-  forecastId: getRowValue(row, ["forecastId", "FORECAST_ID", "forecast_id", "ORDER_ID", "orderId"]),
-  detailId: getRowValue(row, ["detailId", "DETAIL_ID", "detail_id", "DT1_ID", "dt1Id"]),
-  weeklyForecastNo: getRowValue(row, ["weeklyForecastNo", "WEEKLY_FORECAST_NO", "ORDER_NO", "orderNo"], ""),
-  itemCode: getRowValue(row, ["itemCode", "ITEM_CODE", "item_code", "ItemCode", "ITEM_NO", "itemNo"]),
-  itemName: getRowValue(row, ["itemName", "ITEM_NAME", "item_name", "ItemName", "ITEM_DESC", "itemDesc"]),
-  categCode: getRowValue(row, ["categCode", "CATEG_CODE", "categ_code", "CategCode", "CATEGORY_CODE", "categoryCode"], ""),
-  uomCode: getRowValue(row, ["uomCode", "UOM_CODE", "uom_code", "UomCode", "UOM", "uom"]),
+  forecastId: getRowValue(row, [
+    "forecastId",
+    "FORECAST_ID",
+    "forecast_id",
+    "ORDER_ID",
+    "orderId",
+  ]),
+  detailId: getRowValue(row, [
+    "detailId",
+    "DETAIL_ID",
+    "detail_id",
+    "DT1_ID",
+    "dt1Id",
+  ]),
+  weeklyForecastNo: getRowValue(
+    row,
+    ["weeklyForecastNo", "WEEKLY_FORECAST_NO", "ORDER_NO", "orderNo"],
+    "",
+  ),
+  itemCode: getRowValue(row, [
+    "itemCode",
+    "ITEM_CODE",
+    "item_code",
+    "ItemCode",
+    "ITEM_NO",
+    "itemNo",
+  ]),
+  itemName: getRowValue(row, [
+    "itemName",
+    "ITEM_NAME",
+    "item_name",
+    "ItemName",
+    "ITEM_DESC",
+    "itemDesc",
+  ]),
+  categCode: getRowValue(
+    row,
+    [
+      "categCode",
+      "CATEG_CODE",
+      "categ_code",
+      "CategCode",
+      "CATEGORY_CODE",
+      "categoryCode",
+    ],
+    "",
+  ),
+  categDesc: getRowValue(
+    row,
+    [
+      "categDesc",
+      "CATEG_DESC",
+      "categ_desc",
+      "categName",
+      "CATEG_NAME",
+      "categoryName",
+      "CATEGORY_NAME",
+      "categoryDesc",
+      "CATEGORY_DESC",
+    ],
+    "",
+  ),
+  uomCode: getRowValue(row, [
+    "uomCode",
+    "UOM_CODE",
+    "uom_code",
+    "UomCode",
+    "UOM",
+    "uom",
+  ]),
   deliveryDate: normalizeDate(
     row.deliveryDate ??
       row.DELIVERY_DATE ??
@@ -274,15 +419,48 @@ const normalizeForecastRow = (row = {}) => ({
       row.ORDER_DATE ??
       row.orderDate,
   ),
-  orderQty: toNumber(row.orderQty ?? row.ORDER_QTY ?? row.order_qty ?? row.OrderQty ?? row.QTY ?? row.qty),
-  confirmed: toBoolean(row.confirmed ?? row.CONFIRMED ?? row.isConfirmed ?? row.IS_CONFIRMED),
-  confirmedBy: getRowValue(row, ["confirmedBy", "CONFIRMED_BY", "confirmed_by"], ""),
-  confirmedDate: normalizeDate(row.confirmedDate ?? row.CONFIRMED_DATE ?? row.confirmed_date),
-  revisionDate: normalizeDate(
-    row.revisionDate ?? row.REVISION_DATE ?? row.revision_date ?? row.DATE_STAMP ?? row.dateStamp,
+  orderQty: toNumber(
+    row.orderQty ??
+      row.ORDER_QTY ??
+      row.order_qty ??
+      row.OrderQty ??
+      row.QTY ??
+      row.qty,
   ),
-  revisionTime: getRowValue(row, ["revisionTime", "REVISION_TIME", "revision_time", "TIME_STAMP", "timeStamp"], ""),
-  revisionUser: getRowValue(row, ["revisionUser", "REVISION_USER", "revision_user", "USER_CODE", "userCode"], ""),
+  confirmed: toBoolean(
+    row.confirmed ?? row.CONFIRMED ?? row.isConfirmed ?? row.IS_CONFIRMED,
+  ),
+  confirmedBy: getRowValue(
+    row,
+    ["confirmedBy", "CONFIRMED_BY", "confirmed_by"],
+    "",
+  ),
+  confirmedDate: normalizeDate(
+    row.confirmedDate ?? row.CONFIRMED_DATE ?? row.confirmed_date,
+  ),
+  revisionDate: normalizeDate(
+    row.revisionDate ??
+      row.REVISION_DATE ??
+      row.revision_date ??
+      row.DATE_STAMP ??
+      row.dateStamp,
+  ),
+  revisionTime: getRowValue(
+    row,
+    [
+      "revisionTime",
+      "REVISION_TIME",
+      "revision_time",
+      "TIME_STAMP",
+      "timeStamp",
+    ],
+    "",
+  ),
+  revisionUser: getRowValue(
+    row,
+    ["revisionUser", "REVISION_USER", "revision_user", "USER_CODE", "userCode"],
+    "",
+  ),
 });
 
 const toRevisionNumber = (value) => {
@@ -318,7 +496,11 @@ const compareForecastRevisions = (left = {}, right = {}) => {
 
   const leftTimestamp = getRevisionTimestamp(left);
   const rightTimestamp = getRevisionTimestamp(right);
-  if (leftTimestamp !== null && rightTimestamp !== null && leftTimestamp !== rightTimestamp) {
+  if (
+    leftTimestamp !== null &&
+    rightTimestamp !== null &&
+    leftTimestamp !== rightTimestamp
+  ) {
     return leftTimestamp - rightTimestamp;
   }
 
@@ -364,7 +546,8 @@ const annotateHistoryRevisions = (rows = []) => {
     });
 
     return sortedGroup.map((row, index) => {
-      const previousQty = index > 0 ? toNumber(sortedGroup[index - 1].originalWeeklyQty) : 0;
+      const previousQty =
+        index > 0 ? toNumber(sortedGroup[index - 1].originalWeeklyQty) : 0;
       const currentQty = toNumber(row.originalWeeklyQty);
 
       return {
@@ -376,16 +559,6 @@ const annotateHistoryRevisions = (rows = []) => {
       };
     });
   });
-};
-
-const normalizeConfirmationRow = (row = {}, fallbackDate = "") => {
-  const normalized = normalizeForecastRow(row);
-
-  return {
-    ...normalized,
-    deliveryDate: normalized.deliveryDate || fallbackDate,
-    forecastQty: toNumber(row.forecastQty ?? row.FORECAST_QTY ?? row.forecast_qty ?? normalized.orderQty),
-  };
 };
 
 const normalizeHistoryRow = (row = {}) => ({
@@ -406,15 +579,41 @@ const normalizeHistoryRow = (row = {}) => ({
       row.CONFIRMED_QTY,
   ),
   balanceQty: toNumber(row.balanceQty ?? row.BALANCE_QTY ?? row.balance_qty),
-  displayQty: toNumber(row.displayQty ?? row.DISPLAY_QTY ?? row.display_qty ?? row.orderQty),
-  status: getRowValue(row, ["status", "STATUS"], toBoolean(row.confirmed) ? "Confirmed" : "Forecast"),
+  displayQty: toNumber(
+    row.displayQty ?? row.DISPLAY_QTY ?? row.display_qty ?? row.orderQty,
+  ),
+  status: getRowValue(
+    row,
+    ["status", "STATUS"],
+    toBoolean(row.confirmed) ? "Confirmed" : "Forecast",
+  ),
 });
 
 const normalizeStoreContextRow = (row = {}) => ({
-  storeCode: getRowValue(row, ["storeCode", "STORE_CODE", "branchCode", "BRANCH_CODE"], ""),
-  storeType: getRowValue(row, ["storeType", "STORE_TYPE", "branchStoreType", "BRANCH_STORE_TYPE"], ""),
+  storeCode: getRowValue(
+    row,
+    ["storeCode", "STORE_CODE", "branchCode", "BRANCH_CODE"],
+    "",
+  ),
+  storeName: getRowValue(
+    row,
+    [
+      "storeName",
+      "STORE_NAME",
+      "store_name",
+      "branchName",
+      "BRANCH_NAME",
+      "branchDesc",
+      "BRANCH_DESC",
+    ],
+    "",
+  ),
+  storeType: getRowValue(
+    row,
+    ["storeType", "STORE_TYPE", "branchStoreType", "BRANCH_STORE_TYPE"],
+    "",
+  ),
 });
-
 
 const mergeUniqueItems = (rows = []) => {
   const itemMap = new Map();
@@ -447,15 +646,18 @@ const buildOrderMatrix = (loadedItems, savedForecastRows, forecastDates) => {
     if (!row.itemCode || !row.deliveryDate || !matrix[row.itemCode]) return;
     if (!forecastDates.includes(row.deliveryDate)) return;
 
-    // Always display the saved Order Forecast qty, even when confirmed.
-    // Example: Order Forecast 500 -> Daily Order Confirmed 300 -> Order Forecast cell shows 300 and is locked.
+    // Display the latest saved quantity and lock finalized forecast rows.
     matrix[row.itemCode][row.deliveryDate] = toNumber(row.orderQty);
   });
 
   return matrix;
 };
 
-const buildConfirmedMatrix = (loadedItems, savedForecastRows, forecastDates) => {
+const buildConfirmedMatrix = (
+  loadedItems,
+  savedForecastRows,
+  forecastDates,
+) => {
   const matrix = {};
 
   loadedItems.forEach((item) => {
@@ -479,7 +681,10 @@ const buildConfirmedMatrix = (loadedItems, savedForecastRows, forecastDates) => 
 
 const cloneMatrix = (matrix = {}) =>
   Object.fromEntries(
-    Object.entries(matrix).map(([itemCode, dateValues]) => [itemCode, { ...dateValues }]),
+    Object.entries(matrix).map(([itemCode, dateValues]) => [
+      itemCode,
+      { ...dateValues },
+    ]),
   );
 
 const StatusPill = ({ children, variant = "default", className = "" }) => {
@@ -491,7 +696,9 @@ const StatusPill = ({ children, variant = "default", className = "" }) => {
         : "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-800";
 
   return (
-    <span className={`inline-flex max-w-full items-center justify-center rounded-md border px-2 py-1 text-center text-[10px] font-bold uppercase leading-tight tracking-wide sm:whitespace-nowrap ${variantClass} ${className}`}>
+    <span
+      className={`inline-flex max-w-full items-center justify-center rounded-md border px-2 py-1 text-center text-[10px] font-bold uppercase leading-tight tracking-wide sm:whitespace-nowrap ${variantClass} ${className}`}
+    >
       {children}
     </span>
   );
@@ -519,7 +726,7 @@ const FloatingField = ({
         >
           {children}
         </select>
-        <label htmlFor={id} className="global-tran-floating-label">
+        <label htmlFor={id} className="global-tran-floating-label px-1 !left-3">
           {label}
         </label>
       </div>
@@ -538,14 +745,21 @@ const FloatingField = ({
         onChange={(event) => onChange?.(event.target.value)}
         className={`peer global-tran-textbox-ui ${readOnly || disabled ? "cursor-default bg-gray-50 dark:bg-gray-700" : ""}`}
       />
-      <label htmlFor={id} className="global-tran-floating-label">
+      <label htmlFor={id} className="global-tran-floating-label px-1 !left-3">
         {label}
       </label>
     </div>
   );
 };
 
-const ActionButton = ({ children, icon: Icon, onClick, disabled = false, variant = "primary" }) => {
+const ActionButton = ({
+  children,
+  icon: Icon,
+  onClick,
+  disabled = false,
+  variant = "primary",
+}) => {
+  // ...
   const colorClass =
     variant === "success"
       ? "bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
@@ -557,7 +771,9 @@ const ActionButton = ({ children, icon: Icon, onClick, disabled = false, variant
       onClick={onClick}
       disabled={disabled}
       className={`inline-flex min-h-[38px] w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-white transition-colors sm:w-auto sm:px-4 sm:text-sm ${
-        disabled ? "cursor-not-allowed bg-gray-400 hover:bg-gray-400 dark:bg-gray-700" : colorClass
+        disabled
+          ? "cursor-not-allowed bg-gray-400 hover:bg-gray-400 dark:bg-gray-700"
+          : colorClass
       }`}
     >
       {Icon && <Icon className="h-4 w-4 shrink-0" />}
@@ -576,11 +792,15 @@ const focusNextQuantityInput = (event) => {
   const currentCol = currentInput.dataset.qtyCol;
   const currentRow = Number(currentInput.dataset.qtyRow);
 
-  const quantityInputs = Array.from(document.querySelectorAll('[data-store-portal-qty="true"]')).filter(
+  const quantityInputs = Array.from(
+    document.querySelectorAll('[data-store-portal-qty="true"]'),
+  ).filter(
     (input) =>
       !input.disabled &&
       !input.readOnly &&
-      (input.offsetWidth > 0 || input.offsetHeight > 0 || input.getClientRects().length > 0),
+      (input.offsetWidth > 0 ||
+        input.offsetHeight > 0 ||
+        input.getClientRects().length > 0),
   );
 
   let nextInput;
@@ -615,10 +835,22 @@ const formatQuantityWithSeparator = (value) => {
   const normalizedWhole = wholePart.replace(/^0+(?=\d)/, "") || "0";
   const formattedWhole = normalizedWhole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
-  return decimalPart !== undefined ? `${formattedWhole}.${decimalPart}` : formattedWhole;
+  return decimalPart !== undefined
+    ? `${formattedWhole}.${decimalPart}`
+    : formattedWhole;
 };
 
-const QuantityInput = ({ value, onChange, tone = "blue", navGroup, navRow, navCol, disabled = false, max }) => {
+const QuantityInput = ({
+  value,
+  onChange,
+  tone = "blue",
+  navGroup,
+  navRow,
+  navCol,
+  disabled = false,
+  max,
+  compact = false,
+}) => {
   const displayValue = formatQuantityWithSeparator(value ?? 0);
 
   const valueClass =
@@ -656,20 +888,10 @@ const QuantityInput = ({ value, onChange, tone = "blue", navGroup, navRow, navCo
       disabled={disabled}
       onChange={handleChange}
       onKeyDown={focusNextQuantityInput}
-      className={`h-7 w-full border-0 bg-transparent px-1 text-right text-xs outline-none transition focus:outline-none focus:ring-0 ${disabled ? "cursor-not-allowed opacity-70" : ""} ${valueClass}`}
+      className={`${compact ? "h-6 px-0.5 text-[11px]" : "h-7 px-1 text-xs"} w-full border-0 bg-transparent text-right outline-none transition focus:outline-none focus:ring-0 ${disabled ? "cursor-not-allowed opacity-70" : ""} ${valueClass}`}
     />
   );
 };
-
-const DateInput = ({ value, onChange, disabled = false }) => (
-  <input
-    type="date"
-    value={value || ""}
-    disabled={disabled}
-    onChange={(event) => onChange(event.target.value)}
-    className={`h-7 w-full border-0 bg-transparent px-1 text-left text-xs text-slate-900 outline-none transition focus:outline-none focus:ring-0 dark:text-white ${disabled ? "cursor-not-allowed opacity-70" : ""}`}
-  />
-);
 
 const Toast = ({ toast }) => {
   if (!toast) return null;
@@ -680,7 +902,9 @@ const Toast = ({ toast }) => {
       : "border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-900/40 dark:text-green-100";
 
   return (
-    <div className={`fixed left-3 right-3 top-16 z-[9999] rounded-lg border px-4 py-3 text-sm font-medium shadow-xl sm:left-auto sm:right-4 sm:max-w-sm ${toneClass}`}>
+    <div
+      className={`fixed left-3 right-3 top-16 z-[9999] rounded-lg border px-4 py-3 text-sm font-medium shadow-xl sm:left-auto sm:right-4 sm:max-w-sm ${toneClass}`}
+    >
       {toast.message}
     </div>
   );
@@ -695,6 +919,33 @@ const LoadingSpinner = () => (
   </div>
 );
 
+const TableHeaderFilter = ({
+  value,
+  onChange,
+  placeholder = "Filter...",
+  ariaLabel,
+  compact = false,
+}) => (
+  <input
+    type="search"
+    value={value}
+    onChange={(event) => onChange(event.target.value)}
+    onClick={(event) => event.stopPropagation()}
+    placeholder={placeholder}
+    aria-label={ariaLabel || placeholder}
+    className={`${compact ? "mt-0.5 h-6 px-1.5 text-[10px]" : "mt-1 h-7 px-2 text-[11px]"} w-full rounded border border-blue-200 bg-white font-normal text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-blue-700 dark:bg-gray-900 dark:text-slate-100 dark:placeholder:text-slate-500`}
+  />
+);
+
+const containsFilterText = (value, filter) =>
+  String(value ?? "")
+    .toLowerCase()
+    .includes(
+      String(filter ?? "")
+        .trim()
+        .toLowerCase(),
+    );
+
 export default function StorePortalOrder({ user: authUser }) {
   const refsLoading = false;
   const currentUserRow = useMemo(() => {
@@ -703,15 +954,34 @@ export default function StorePortalOrder({ user: authUser }) {
   }, [authUser]);
   const user = authUser;
 
-  const userCode = useMemo(() => getCurrentUserCode(currentUserRow, user), [currentUserRow, user]);
-  const userName = useMemo(() => getCurrentUserName(currentUserRow, user), [currentUserRow, user]);
-  const branchCode = useMemo(() => getCurrentUserBranchCode(currentUserRow), [currentUserRow]);
-  const branchName = useMemo(() => getCurrentUserBranchName(currentUserRow), [currentUserRow]);
+  const userCode = useMemo(
+    () => getCurrentUserCode(currentUserRow, user),
+    [currentUserRow, user],
+  );
+  const userName = useMemo(
+    () => getCurrentUserName(currentUserRow, user),
+    [currentUserRow, user],
+  );
+  const branchCode = useMemo(
+    () => getCurrentUserBranchCode(currentUserRow),
+    [currentUserRow],
+  );
+  const branchName = useMemo(
+    () => getCurrentUserBranchName(currentUserRow),
+    [currentUserRow],
+  );
   const storeCode = branchCode;
 
   const [storeType, setStoreType] = useState("");
+  const [storeName, setStoreName] = useState("");
   const [forecastView, setForecastView] = useState("entry");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [forecastColumnFilters, setForecastColumnFilters] = useState({
+    itemCode: "",
+    itemName: "",
+    category: "",
+    uom: "",
+  });
   const [collapsedCategories, setCollapsedCategories] = useState([]);
   const [startDate, setStartDate] = useState(defaultForecastStartDate);
   const [endDate, setEndDate] = useState(defaultForecastEndDate);
@@ -724,16 +994,21 @@ export default function StorePortalOrder({ user: authUser }) {
   const [forecastLoading, setForecastLoading] = useState(false);
   const [forecastSubmitting, setForecastSubmitting] = useState(false);
 
-  const [deliveryDate, setDeliveryDate] = useState(tomorrowDate());
-  const [confirmationCategoryFilter, setConfirmationCategoryFilter] = useState("");
-  const [collapsedConfirmationCategories, setCollapsedConfirmationCategories] = useState([]);
-  const [confirmationRows, setConfirmationRows] = useState([]);
-  const [loadedConfirmationRows, setLoadedConfirmationRows] = useState([]);
-  const [confirmLoading, setConfirmLoading] = useState(false);
-  const [confirmSubmitting, setConfirmSubmitting] = useState(false);
-
   const [historyCategoryFilter, setHistoryCategoryFilter] = useState("");
-  const [collapsedHistoryCategories, setCollapsedHistoryCategories] = useState([]);
+  const [historyColumnFilters, setHistoryColumnFilters] = useState({
+    itemCode: "",
+    itemName: "",
+    category: "",
+    uom: "",
+    deliveryDate: "",
+    revision: "",
+    status: "",
+    confirmedBy: "",
+    confirmedDate: "",
+  });
+  const [collapsedHistoryCategories, setCollapsedHistoryCategories] = useState(
+    [],
+  );
   const [historyRows, setHistoryRows] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
@@ -741,14 +1016,25 @@ export default function StorePortalOrder({ user: authUser }) {
   const itemCacheRef = useRef(new Map());
   const itemRequestRef = useRef(new Map());
   const forecastRequestIdRef = useRef(0);
-  const confirmationRequestIdRef = useRef(0);
 
-  const dates = useMemo(() => getDateRange(startDate, endDate), [startDate, endDate]);
+  const dates = useMemo(
+    () => getDateRange(startDate, endDate),
+    [startDate, endDate],
+  );
   const hasTaggedBranch = Boolean(storeCode);
-  const itemCacheKey = useMemo(() => `${userCode || ""}::${storeCode || ""}`, [storeCode, userCode]);
-  const isBusy = refsLoading || forecastLoading || forecastSubmitting || confirmLoading || confirmSubmitting || historyLoading;
-  const userDisplay = userName && userName !== userCode ? `${userCode} - ${userName}` : userCode;
-  const branchDisplay = branchName ? `${branchCode} - ${branchName}` : branchCode;
+  const itemCacheKey = useMemo(
+    () => `${userCode || ""}::${storeCode || ""}`,
+    [storeCode, userCode],
+  );
+  const isBusy =
+    refsLoading ||
+    forecastLoading ||
+    forecastSubmitting ||
+    historyLoading;
+  const userDisplay =
+    userName && userName !== userCode ? `${userCode} - ${userName}` : userCode;
+  const resolvedStoreName = storeName || branchName;
+  const branchDisplay = resolvedStoreName || branchCode;
 
   const categoryOptions = useMemo(() => {
     const categories = new Set();
@@ -761,17 +1047,31 @@ export default function StorePortalOrder({ user: authUser }) {
   }, [items]);
 
   const filteredItems = useMemo(() => {
-    const rows = categoryFilter
+    const categoryRows = categoryFilter
       ? items.filter((item) => getCategoryLabel(item) === categoryFilter)
       : items;
+    const rows = categoryRows.filter(
+      (item) =>
+        containsFilterText(item.itemCode, forecastColumnFilters.itemCode) &&
+        containsFilterText(item.itemName, forecastColumnFilters.itemName) &&
+        containsFilterText(
+          `${getCategoryLabel(item)} ${item.categCode || ""}`,
+          forecastColumnFilters.category,
+        ) &&
+        containsFilterText(item.uomCode, forecastColumnFilters.uom),
+    );
 
     return [...rows].sort((a, b) => {
-      const categoryCompare = getCategoryLabel(a).localeCompare(getCategoryLabel(b));
+      const categoryCompare = getCategoryLabel(a).localeCompare(
+        getCategoryLabel(b),
+      );
       if (categoryCompare !== 0) return categoryCompare;
 
-      return String(a.itemName || a.itemCode || "").localeCompare(String(b.itemName || b.itemCode || ""));
+      return String(a.itemName || a.itemCode || "").localeCompare(
+        String(b.itemName || b.itemCode || ""),
+      );
     });
-  }, [items, categoryFilter]);
+  }, [items, categoryFilter, forecastColumnFilters]);
 
   const groupedForecastItems = useMemo(() => {
     const groups = new Map();
@@ -786,10 +1086,16 @@ export default function StorePortalOrder({ user: authUser }) {
       groups.get(category).push({ ...item, __displayIndex: index });
     });
 
-    return Array.from(groups, ([category, categoryItems]) => ({ category, items: categoryItems }));
+    return Array.from(groups, ([category, categoryItems]) => ({
+      category,
+      items: categoryItems,
+    }));
   }, [filteredItems]);
 
-  const collapsedCategorySet = useMemo(() => new Set(collapsedCategories), [collapsedCategories]);
+  const collapsedCategorySet = useMemo(
+    () => new Set(collapsedCategories),
+    [collapsedCategories],
+  );
 
   const isCategoryCollapsed = useCallback(
     (category) => collapsedCategorySet.has(category),
@@ -798,12 +1104,17 @@ export default function StorePortalOrder({ user: authUser }) {
 
   const toggleCategoryCollapse = useCallback((category) => {
     setCollapsedCategories((prev) =>
-      prev.includes(category) ? prev.filter((value) => value !== category) : [...prev, category],
+      prev.includes(category)
+        ? prev.filter((value) => value !== category)
+        : [...prev, category],
     );
   }, []);
 
   const visibleCollapsedCategoryCount = useMemo(
-    () => groupedForecastItems.filter((group) => collapsedCategorySet.has(group.category)).length,
+    () =>
+      groupedForecastItems.filter((group) =>
+        collapsedCategorySet.has(group.category),
+      ).length,
     [groupedForecastItems, collapsedCategorySet],
   );
 
@@ -811,8 +1122,12 @@ export default function StorePortalOrder({ user: authUser }) {
     if (groupedForecastItems.length === 0) return;
 
     setCollapsedCategories((prev) => {
-      const visibleCategories = groupedForecastItems.map((group) => group.category);
-      const allVisibleCollapsed = visibleCategories.every((category) => prev.includes(category));
+      const visibleCategories = groupedForecastItems.map(
+        (group) => group.category,
+      );
+      const allVisibleCollapsed = visibleCategories.every((category) =>
+        prev.includes(category),
+      );
 
       if (allVisibleCollapsed) {
         return prev.filter((category) => !visibleCategories.includes(category));
@@ -821,82 +1136,6 @@ export default function StorePortalOrder({ user: authUser }) {
       return Array.from(new Set([...prev, ...visibleCategories]));
     });
   }, [groupedForecastItems]);
-
-  const confirmationCategoryOptions = useMemo(() => {
-    const categories = new Set();
-
-    confirmationRows.forEach((row) => {
-      categories.add(getCategoryLabel(row));
-    });
-
-    return Array.from(categories).sort((a, b) => a.localeCompare(b));
-  }, [confirmationRows]);
-
-  const filteredConfirmationRows = useMemo(() => {
-    const rows = confirmationRows.map((row, index) => ({ ...row, __originalIndex: index }));
-    const filteredRows = confirmationCategoryFilter
-      ? rows.filter((row) => getCategoryLabel(row) === confirmationCategoryFilter)
-      : rows;
-
-    return [...filteredRows].sort((a, b) => {
-      const categoryCompare = getCategoryLabel(a).localeCompare(getCategoryLabel(b));
-      if (categoryCompare !== 0) return categoryCompare;
-
-      return String(a.itemName || a.itemCode || "").localeCompare(String(b.itemName || b.itemCode || ""));
-    });
-  }, [confirmationRows, confirmationCategoryFilter]);
-
-  const groupedConfirmationRows = useMemo(() => {
-    const groups = new Map();
-
-    filteredConfirmationRows.forEach((row, index) => {
-      const category = getCategoryLabel(row);
-
-      if (!groups.has(category)) {
-        groups.set(category, []);
-      }
-
-      groups.get(category).push({ ...row, __displayIndex: index });
-    });
-
-    return Array.from(groups, ([category, rows]) => ({ category, rows }));
-  }, [filteredConfirmationRows]);
-
-  const collapsedConfirmationCategorySet = useMemo(
-    () => new Set(collapsedConfirmationCategories),
-    [collapsedConfirmationCategories],
-  );
-
-  const isConfirmationCategoryCollapsed = useCallback(
-    (category) => collapsedConfirmationCategorySet.has(category),
-    [collapsedConfirmationCategorySet],
-  );
-
-  const toggleConfirmationCategoryCollapse = useCallback((category) => {
-    setCollapsedConfirmationCategories((prev) =>
-      prev.includes(category) ? prev.filter((value) => value !== category) : [...prev, category],
-    );
-  }, []);
-
-  const visibleCollapsedConfirmationCategoryCount = useMemo(
-    () => groupedConfirmationRows.filter((group) => collapsedConfirmationCategorySet.has(group.category)).length,
-    [groupedConfirmationRows, collapsedConfirmationCategorySet],
-  );
-
-  const handleToggleAllConfirmationCategories = useCallback(() => {
-    if (groupedConfirmationRows.length === 0) return;
-
-    setCollapsedConfirmationCategories((prev) => {
-      const visibleCategories = groupedConfirmationRows.map((group) => group.category);
-      const allVisibleCollapsed = visibleCategories.every((category) => prev.includes(category));
-
-      if (allVisibleCollapsed) {
-        return prev.filter((category) => !visibleCategories.includes(category));
-      }
-
-      return Array.from(new Set([...prev, ...visibleCategories]));
-    });
-  }, [groupedConfirmationRows]);
 
   const historyCategoryOptions = useMemo(() => {
     const categories = new Set();
@@ -909,21 +1148,54 @@ export default function StorePortalOrder({ user: authUser }) {
   }, [historyRows]);
 
   const filteredHistoryRows = useMemo(() => {
-    const rows = historyRows.map((row, index) => ({ ...row, __originalIndex: index }));
-    const filteredRows = historyCategoryFilter
+    const rows = historyRows.map((row, index) => ({
+      ...row,
+      __originalIndex: index,
+    }));
+    const categoryRows = historyCategoryFilter
       ? rows.filter((row) => getCategoryLabel(row) === historyCategoryFilter)
       : rows;
+    const filteredRows = categoryRows.filter(
+      (row) =>
+        containsFilterText(row.itemCode, historyColumnFilters.itemCode) &&
+        containsFilterText(row.itemName, historyColumnFilters.itemName) &&
+        containsFilterText(
+          `${getCategoryLabel(row)} ${row.categCode || ""}`,
+          historyColumnFilters.category,
+        ) &&
+        containsFilterText(row.uomCode, historyColumnFilters.uom) &&
+        containsFilterText(
+          row.deliveryDate,
+          historyColumnFilters.deliveryDate,
+        ) &&
+        containsFilterText(
+          `R${row.revisionNo || 1}${row.isLatestRevision ? " Latest" : ""}`,
+          historyColumnFilters.revision,
+        ) &&
+        containsFilterText(row.status, historyColumnFilters.status) &&
+        containsFilterText(row.confirmedBy, historyColumnFilters.confirmedBy) &&
+        containsFilterText(
+          row.confirmedDate,
+          historyColumnFilters.confirmedDate,
+        ),
+    );
 
     return [...filteredRows].sort((a, b) => {
-      const categoryCompare = getCategoryLabel(a).localeCompare(getCategoryLabel(b));
+      const categoryCompare = getCategoryLabel(a).localeCompare(
+        getCategoryLabel(b),
+      );
       if (categoryCompare !== 0) return categoryCompare;
 
-      const dateCompare = String(a.deliveryDate || "").localeCompare(String(b.deliveryDate || ""));
+      const dateCompare = String(a.deliveryDate || "").localeCompare(
+        String(b.deliveryDate || ""),
+      );
       if (dateCompare !== 0) return dateCompare;
 
-      return String(a.itemName || a.itemCode || "").localeCompare(String(b.itemName || b.itemCode || ""));
+      return String(a.itemName || a.itemCode || "").localeCompare(
+        String(b.itemName || b.itemCode || ""),
+      );
     });
-  }, [historyRows, historyCategoryFilter]);
+  }, [historyRows, historyCategoryFilter, historyColumnFilters]);
 
   const groupedHistoryRows = useMemo(() => {
     const groups = new Map();
@@ -953,12 +1225,17 @@ export default function StorePortalOrder({ user: authUser }) {
 
   const toggleHistoryCategoryCollapse = useCallback((category) => {
     setCollapsedHistoryCategories((prev) =>
-      prev.includes(category) ? prev.filter((value) => value !== category) : [...prev, category],
+      prev.includes(category)
+        ? prev.filter((value) => value !== category)
+        : [...prev, category],
     );
   }, []);
 
   const visibleCollapsedHistoryCategoryCount = useMemo(
-    () => groupedHistoryRows.filter((group) => collapsedHistoryCategorySet.has(group.category)).length,
+    () =>
+      groupedHistoryRows.filter((group) =>
+        collapsedHistoryCategorySet.has(group.category),
+      ).length,
     [groupedHistoryRows, collapsedHistoryCategorySet],
   );
 
@@ -966,8 +1243,12 @@ export default function StorePortalOrder({ user: authUser }) {
     if (groupedHistoryRows.length === 0) return;
 
     setCollapsedHistoryCategories((prev) => {
-      const visibleCategories = groupedHistoryRows.map((group) => group.category);
-      const allVisibleCollapsed = visibleCategories.every((category) => prev.includes(category));
+      const visibleCategories = groupedHistoryRows.map(
+        (group) => group.category,
+      );
+      const allVisibleCollapsed = visibleCategories.every((category) =>
+        prev.includes(category),
+      );
 
       if (allVisibleCollapsed) {
         return prev.filter((category) => !visibleCategories.includes(category));
@@ -982,11 +1263,11 @@ export default function StorePortalOrder({ user: authUser }) {
     window.setTimeout(() => setToast(null), 3500);
   }, []);
 
-
   const loadStoreContext = useCallback(
     async ({ silent = false } = {}) => {
       if (!hasTaggedBranch) {
         setStoreType("");
+        setStoreName("");
         return;
       }
 
@@ -996,12 +1277,17 @@ export default function StorePortalOrder({ user: authUser }) {
           storeCode,
         });
 
-        const contextRow = unwrapDataArray(res).map(normalizeStoreContextRow)[0];
+        const contextRow = unwrapDataArray(res).map(
+          normalizeStoreContextRow,
+        )[0];
         setStoreType(contextRow?.storeType || "");
+        setStoreName(contextRow?.storeName || "");
       } catch (error) {
         console.error("Failed to load branch store type:", error);
         setStoreType("");
-        if (!silent) showToast("Unable to load branch store type setup.", "error");
+        setStoreName("");
+        if (!silent)
+          showToast("Unable to load branch store type setup.", "error");
       }
     },
     [hasTaggedBranch, showToast, storeCode, userCode],
@@ -1018,23 +1304,16 @@ export default function StorePortalOrder({ user: authUser }) {
   }, [categoryFilter, categoryOptions]);
 
   useEffect(() => {
-    setCollapsedCategories((prev) => prev.filter((category) => categoryOptions.includes(category)));
+    setCollapsedCategories((prev) =>
+      prev.filter((category) => categoryOptions.includes(category)),
+    );
   }, [categoryOptions]);
 
   useEffect(() => {
-    if (confirmationCategoryFilter && !confirmationCategoryOptions.includes(confirmationCategoryFilter)) {
-      setConfirmationCategoryFilter("");
-    }
-  }, [confirmationCategoryFilter, confirmationCategoryOptions]);
-
-  useEffect(() => {
-    setCollapsedConfirmationCategories((prev) =>
-      prev.filter((category) => confirmationCategoryOptions.includes(category)),
-    );
-  }, [confirmationCategoryOptions]);
-
-  useEffect(() => {
-    if (historyCategoryFilter && !historyCategoryOptions.includes(historyCategoryFilter)) {
+    if (
+      historyCategoryFilter &&
+      !historyCategoryOptions.includes(historyCategoryFilter)
+    ) {
       setHistoryCategoryFilter("");
     }
   }, [historyCategoryFilter, historyCategoryOptions]);
@@ -1088,7 +1367,11 @@ export default function StorePortalOrder({ user: authUser }) {
         setLoadedOrderMatrix({});
         setEditedForecastCells({});
         setConfirmedMatrix({});
-        if (!silent) showToast("No branch is tagged to the logged-in user account.", "error");
+        if (!silent)
+          showToast(
+            "No branch is tagged to the logged-in user account.",
+            "error",
+          );
         return;
       }
 
@@ -1100,7 +1383,8 @@ export default function StorePortalOrder({ user: authUser }) {
         setLoadedOrderMatrix({});
         setEditedForecastCells({});
         setConfirmedMatrix({});
-        if (!silent) showToast("Please select a valid forecast date range.", "error");
+        if (!silent)
+          showToast("Please select a valid Delivery date.", "error");
         return;
       }
 
@@ -1124,11 +1408,16 @@ export default function StorePortalOrder({ user: authUser }) {
 
         if (forecastRequestIdRef.current !== requestId) return;
 
-        const itemStoreType = loadedItems.find((item) => item.storeType)?.storeType;
+        const itemStoreType = loadedItems.find(
+          (item) => item.storeType,
+        )?.storeType;
         if (itemStoreType) setStoreType(itemStoreType);
 
         if (forecastResult.error) {
-          console.warn("Items loaded, but existing Order Forecast quantities were not retrieved:", forecastResult.error);
+          console.warn(
+            "Items loaded, but existing Order Forecast quantities were not retrieved:",
+            forecastResult.error,
+          );
           if (!silent) {
             showToast("Failed to load existing forecast quantities.", "error");
           }
@@ -1138,8 +1427,16 @@ export default function StorePortalOrder({ user: authUser }) {
           ? unwrapDataArray(forecastResult.response).map(normalizeForecastRow)
           : [];
 
-        const nextOrderMatrix = buildOrderMatrix(loadedItems, savedForecastRows, dates);
-        const nextConfirmedMatrix = buildConfirmedMatrix(loadedItems, savedForecastRows, dates);
+        const nextOrderMatrix = buildOrderMatrix(
+          loadedItems,
+          savedForecastRows,
+          dates,
+        );
+        const nextConfirmedMatrix = buildConfirmedMatrix(
+          loadedItems,
+          savedForecastRows,
+          dates,
+        );
 
         setItems(loadedItems);
         setOrderMatrix(nextOrderMatrix);
@@ -1170,48 +1467,74 @@ export default function StorePortalOrder({ user: authUser }) {
         }
       }
     },
-    [dates, endDate, getStoreItems, hasTaggedBranch, showToast, startDate, storeCode, userCode],
+    [
+      dates,
+      endDate,
+      getStoreItems,
+      hasTaggedBranch,
+      showToast,
+      startDate,
+      storeCode,
+      userCode,
+    ],
   );
 
   const loadHistory = useCallback(
     async ({ silent = false } = {}) => {
       if (!hasTaggedBranch) {
         setHistoryRows([]);
-        if (!silent) showToast("No branch is tagged to the logged-in user account.", "error");
+        if (!silent)
+          showToast(
+            "No branch is tagged to the logged-in user account.",
+            "error",
+          );
         return;
       }
 
-      if (!startDate || !endDate || new Date(`${startDate}T00:00:00`) > new Date(`${endDate}T00:00:00`)) {
+      if (
+        !startDate ||
+        !endDate ||
+        new Date(`${startDate}T00:00:00`) > new Date(`${endDate}T00:00:00`)
+      ) {
         setHistoryRows([]);
-        if (!silent) showToast("Please select a valid history date range.", "error");
+        if (!silent)
+          showToast("Please select a valid history date range.", "error");
         return;
       }
 
       setHistoryLoading(true);
       try {
-        const historyResponse = await fetchData("store-portal/weekly-forecast-history", {
-          userCode,
-          storeCode,
-          startDate,
-          endDate,
-        });
+        const historyResponse = await fetchData(
+          "store-portal/weekly-forecast-history",
+          {
+            userCode,
+            storeCode,
+            startDate,
+            endDate,
+          },
+        );
 
         const rows = annotateHistoryRevisions(
           unwrapDataArray(historyResponse)
-          .map(normalizeHistoryRow)
-          // Keep zero-quantity revisions so a change such as 10 -> 0 remains
-          // visible in history and is not mistaken for a deleted record.
-          .filter((row) => row.itemCode),
+            .map(normalizeHistoryRow)
+            // Keep zero-quantity revisions so a change such as 10 -> 0 remains
+            // visible in history and is not mistaken for a deleted record.
+            .filter((row) => row.itemCode),
         );
 
         setHistoryRows(rows);
         if (!silent) {
-          showToast(rows.length > 0 ? "Order Forecast history loaded successfully." : "No Order Forecast history found.");
+          showToast(
+            rows.length > 0
+              ? "Order Forecast history loaded successfully."
+              : "No Order Forecast history found.",
+          );
         }
       } catch (error) {
         console.error("Failed to load Order Forecast history:", error);
         setHistoryRows([]);
-        if (!silent) showToast("Unable to load Order Forecast history.", "error");
+        if (!silent)
+          showToast("Unable to load Order Forecast history.", "error");
       } finally {
         setHistoryLoading(false);
       }
@@ -1231,25 +1554,13 @@ export default function StorePortalOrder({ user: authUser }) {
     }
   }, [forecastView, loadHistory]);
 
-  useEffect(() => {
-    confirmationRequestIdRef.current += 1;
-    setConfirmLoading(false);
-    setConfirmationRows([]);
-    setLoadedConfirmationRows([]);
-  }, [storeCode, deliveryDate]);
-
   const isForecastCellConfirmed = useCallback(
     (itemCode, date) => Boolean(confirmedMatrix[itemCode]?.[date]),
     [confirmedMatrix],
   );
 
   const isForecastCellLocked = useCallback(
-    (itemCode, date) => {
-      // A quantity for the current date must still be accepted. Older/future
-      // confirmed rows stay locked to preserve the confirmed order.
-      const isCurrentDate = date === formatDate(new Date());
-      return isForecastCellConfirmed(itemCode, date) && !isCurrentDate;
-    },
+    (itemCode, date) => isForecastCellConfirmed(itemCode, date),
     [isForecastCellConfirmed],
   );
 
@@ -1262,7 +1573,8 @@ export default function StorePortalOrder({ user: authUser }) {
   const handleQtyChange = (itemCode, date, value) => {
     if (isForecastCellLocked(itemCode, date)) return;
 
-    const isEdited = toNumber(value) !== toNumber(loadedOrderMatrix[itemCode]?.[date]);
+    const isEdited =
+      toNumber(value) !== toNumber(loadedOrderMatrix[itemCode]?.[date]);
 
     setOrderMatrix((prev) => ({
       ...prev,
@@ -1300,7 +1612,7 @@ export default function StorePortalOrder({ user: authUser }) {
     }
 
     if (!startDate || !endDate || dates.length === 0) {
-      showToast("Please select a valid forecast date range.", "error");
+      showToast("Please select a valid Delivery date.", "error");
       return;
     }
 
@@ -1362,130 +1674,16 @@ export default function StorePortalOrder({ user: authUser }) {
       setEditedForecastCells({});
       showToast(res?.message || "Order Forecast submitted successfully.");
     } catch (error) {
-      console.error("Failed to submit Order Forecast:", error?.response?.data || error);
-      showToast(getApiErrorMessage(error, "Unable to submit Order Forecast."), "error");
+      console.error(
+        "Failed to submit Order Forecast:",
+        error?.response?.data || error,
+      );
+      showToast(
+        getApiErrorMessage(error, "Unable to submit Order Forecast."),
+        "error",
+      );
     } finally {
       setForecastSubmitting(false);
-    }
-  };
-
-  const loadConfirmation = useCallback(
-    async ({ silent = false } = {}) => {
-      if (!hasTaggedBranch) {
-        confirmationRequestIdRef.current += 1;
-        setConfirmLoading(false);
-        if (!silent) showToast("No branch is tagged to the logged-in user account.", "error");
-        return [];
-      }
-
-      const requestId = confirmationRequestIdRef.current + 1;
-      confirmationRequestIdRef.current = requestId;
-      setConfirmLoading(true);
-
-      try {
-        const res = await fetchData("store-portal/confirmation", {
-          storeCode,
-          deliveryDate,
-        });
-
-        if (confirmationRequestIdRef.current !== requestId) return [];
-
-        const rows = unwrapDataArray(res)
-          .map((row) => normalizeConfirmationRow(row, deliveryDate))
-          // Keep confirmed rows even if the weekly qty returned as 0.
-          // The saved/confirmed qty must still be retrievable for old forecast dates.
-          .filter(
-            (row) =>
-              row.itemCode &&
-              (toNumber(row.orderQty) > 0 || toNumber(row.forecastQty) > 0 || toBoolean(row.confirmed)),
-          );
-
-        setConfirmationRows(rows);
-        setLoadedConfirmationRows(rows.map((row) => ({ ...row })));
-        return rows;
-      } catch (error) {
-        if (confirmationRequestIdRef.current !== requestId) return [];
-
-        console.error("Failed to load store portal confirmation:", error);
-        setConfirmationRows([]);
-        setLoadedConfirmationRows([]);
-        if (!silent) showToast("Unable to load forecast confirmation.", "error");
-        return [];
-      } finally {
-        if (confirmationRequestIdRef.current === requestId) {
-          setConfirmLoading(false);
-        }
-      }
-    },
-    [deliveryDate, hasTaggedBranch, showToast, storeCode],
-  );
-
-  const resetConfirmationRows = () => {
-    setConfirmationRows(loadedConfirmationRows.map((row) => ({ ...row })));
-    showToast("Daily order confirmation reset to the last loaded values.");
-  };
-
-  const handleConfirmQtyChange = (index, value) => {
-    setConfirmationRows((prev) =>
-      prev.map((row, i) => {
-        if (i !== index || toBoolean(row.confirmed)) return row;
-
-        // Confirm Qty may still be greater than the requested / Order Forecast
-        // quantity, but it must be locked once the row is already confirmed.
-        return { ...row, orderQty: value };
-      }),
-    );
-  };
-
-  const handleConfirmDateChange = (index, value) => {
-    setConfirmationRows((prev) =>
-      prev.map((row, i) => (i === index && !toBoolean(row.confirmed) ? { ...row, deliveryDate: value } : row)),
-    );
-  };
-
-  const confirmOrder = async () => {
-    if (!hasTaggedBranch) {
-      showToast("No branch is tagged to the logged-in user account.", "error");
-      return;
-    }
-
-    const details = filteredConfirmationRows
-      .filter((row) => !toBoolean(row.confirmed) && toNumber(row.orderQty) > 0)
-      .map((row) => ({
-        forecastId: row.forecastId,
-        itemCode: row.itemCode,
-        itemName: row.itemName,
-        categCode: row.categCode || "",
-        uomCode: row.uomCode,
-        deliveryDate: row.deliveryDate || deliveryDate,
-        orderQty: Number(row.orderQty || 0),
-      }));
-
-    if (details.length === 0) {
-      showToast("No unconfirmed quantity to submit.", "error");
-      return;
-    }
-
-    const payloadDeliveryDate = details[0]?.deliveryDate || deliveryDate;
-
-    const payload = {
-      userCode,
-      storeCode,
-      deliveryDate: payloadDeliveryDate,
-      orderType: "ConfirmedOrder",
-      details,
-    };
-
-    setConfirmSubmitting(true);
-    try {
-      const res = await postRequest("store-portal/confirm-order", payload);
-      showToast(res?.message || "Order confirmed successfully.");
-      await Promise.all([loadItems({ silent: true }), loadConfirmation({ silent: true })]);
-    } catch (error) {
-      console.error("Failed to confirm store portal order:", error);
-      showToast(getApiErrorMessage(error, "Unable to confirm order."), "error");
-    } finally {
-      setConfirmSubmitting(false);
     }
   };
 
@@ -1493,7 +1691,12 @@ export default function StorePortalOrder({ user: authUser }) {
     () =>
       filteredItems.reduce(
         (sum, item) =>
-          sum + dates.reduce((dateSum, date) => dateSum + Number(orderMatrix[item.itemCode]?.[date] || 0), 0),
+          sum +
+          dates.reduce(
+            (dateSum, date) =>
+              dateSum + Number(orderMatrix[item.itemCode]?.[date] || 0),
+            0,
+          ),
         0,
       ),
     [filteredItems, dates, orderMatrix],
@@ -1502,42 +1705,32 @@ export default function StorePortalOrder({ user: authUser }) {
   const totalForecastPerDay = useMemo(
     () =>
       dates.reduce((totals, date) => {
-        totals[date] = filteredItems.reduce((sum, item) => sum + Number(orderMatrix[item.itemCode]?.[date] || 0), 0);
+        totals[date] = filteredItems.reduce(
+          (sum, item) => sum + Number(orderMatrix[item.itemCode]?.[date] || 0),
+          0,
+        );
         return totals;
       }, {}),
     [filteredItems, dates, orderMatrix],
   );
 
   const getItemForecastTotal = useCallback(
-    (itemCode) => dates.reduce((sum, date) => sum + Number(orderMatrix[itemCode]?.[date] || 0), 0),
+    (itemCode) =>
+      dates.reduce(
+        (sum, date) => sum + Number(orderMatrix[itemCode]?.[date] || 0),
+        0,
+      ),
     [dates, orderMatrix],
   );
 
   const getCategoryForecastTotal = useCallback(
     (categoryItems = []) =>
-      categoryItems.reduce((sum, item) => sum + getItemForecastTotal(item.itemCode), 0),
+      categoryItems.reduce(
+        (sum, item) => sum + getItemForecastTotal(item.itemCode),
+        0,
+      ),
     [getItemForecastTotal],
   );
-
-  const totalConfirmationOrderQty = useMemo(
-    () => filteredConfirmationRows.reduce((sum, row) => sum + Number(row.forecastQty || 0), 0),
-    [filteredConfirmationRows],
-  );
-
-  const totalConfirmedQty = useMemo(
-    () => filteredConfirmationRows.reduce((sum, row) => sum + Number(row.orderQty || 0), 0),
-    [filteredConfirmationRows],
-  );
-
-  const getConfirmationCategoryTotals = useCallback((rows = []) => {
-    return rows.reduce(
-      (totals, row) => ({
-        orderQty: totals.orderQty + toNumber(row.forecastQty),
-        confirmedQty: totals.confirmedQty + toNumber(row.orderQty),
-      }),
-      { orderQty: 0, confirmedQty: 0 },
-    );
-  }, []);
 
   const getHistoryCategoryTotals = useCallback((rows = []) => {
     return rows.reduce(
@@ -1551,43 +1744,71 @@ export default function StorePortalOrder({ user: authUser }) {
   }, []);
 
   const totalHistoryOriginalQty = useMemo(
-    () => filteredHistoryRows.reduce((sum, row) => sum + Number(row.originalWeeklyQty || 0), 0),
+    () =>
+      filteredHistoryRows.reduce(
+        (sum, row) => sum + Number(row.originalWeeklyQty || 0),
+        0,
+      ),
     [filteredHistoryRows],
   );
 
   const totalHistoryConfirmedQty = useMemo(
-    () => filteredHistoryRows.reduce((sum, row) => sum + Number(row.confirmedOrderQty || 0), 0),
+    () =>
+      filteredHistoryRows.reduce(
+        (sum, row) => sum + Number(row.confirmedOrderQty || 0),
+        0,
+      ),
     [filteredHistoryRows],
   );
 
-return (
-  <div className="global-tran-main-div-ui !mt-0 min-w-0 overflow-x-hidden px-2 pb-20 pt-[70px] sm:px-3 sm:pt-[74px] lg:px-4">
-    {isBusy && <LoadingSpinner />}
-    <Toast toast={toast} />
+  return (
+    <div className="global-tran-main-div-ui !mt-0 min-w-0 overflow-x-hidden px-2 pb-20 pt-[70px] sm:px-3 sm:pt-[74px] lg:px-4">
+      {isBusy && <LoadingSpinner />}
+      <Toast toast={toast} />
 
-    <div className="relative z-[1] mb-3 flex w-full min-w-0 items-center rounded-lg border border-blue-200 bg-blue-100 px-4 py-3 text-blue-900 shadow-md dark:border-blue-800 dark:bg-blue-900 dark:text-white sm:mb-4 sm:px-5">
-      <h1 className="min-w-0 break-words text-base font-extrabold leading-tight tracking-wide sm:text-xl lg:text-2xl">
-        Store Portal Ordering
-      </h1>
-    </div>
+      <div className="relative z-[1] mb-3 flex w-full min-w-0 items-center rounded-lg border border-blue-200 bg-blue-100 px-4 py-3 text-blue-900 shadow-md dark:border-blue-800 dark:bg-blue-900 dark:text-white sm:mb-4 sm:px-5">
+        <h1 className="min-w-0 break-words text-base font-extrabold leading-tight tracking-wide sm:text-xl lg:text-2xl">
+          Store Portal Ordering
+        </h1>
+      </div>
 
-      <div className="global-tran-header-div-ui !mt-0 !p-3 sm:!p-4">
-        <div className="global-tran-header-tab-div-ui">
-          <button className="global-tran-tab-padding-ui global-tran-tab-text_active-ui">
-            Basic Information
-          </button>
+      <div className="global-tran-header-div-ui !mt-0 !p-2 sm:!p-4 lg:!p-2">
+        <div className="mb-1 px-1 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+          Basic Information
         </div>
 
-        <div className="grid grid-cols-1 gap-1 sm:gap-2 md:grid-cols-2 xl:grid-cols-4">
-          <FloatingField id="userAccount" label="User Account" value={userDisplay || "Loading user..."} readOnly />
-          <FloatingField id="branchTagged" label="Tagged Branch" value={branchDisplay || "No branch tagged"} readOnly />
-          <FloatingField id="storeCode" label="Store Code" value={storeCode || ""} readOnly />
-          <FloatingField id="storeType" label="Store Type" value={storeType || "Auto from Branch_ref"} readOnly />
+        {/* UPDATED: Changed gap-1 to gap-3 sm:gap-4 and added mt-3 for vertical breathing room */}
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <FloatingField
+            id="userAccount"
+            label="User Account"
+            value={userDisplay || "Loading user..."}
+            readOnly
+          />
+          <FloatingField
+            id="branchTagged"
+            label="Store"
+            value={branchDisplay || "No branch tagged"}
+            readOnly
+          />
+          <FloatingField
+            id="storeCode"
+            label="Store Code"
+            value={storeCode || ""}
+            readOnly
+          />
+          <FloatingField
+            id="storeType"
+            label="Store Type"
+            value={storeType || "Auto from Branch_ref"}
+            readOnly
+          />
         </div>
 
         {!hasTaggedBranch && (
           <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-100">
-            This account has no branch tagged in the Users table. Store Portal ordering is disabled until a branch is assigned.
+            This account has no branch tagged in the Users table. Store Portal
+            ordering is disabled until a branch is assigned.
           </div>
         )}
       </div>
@@ -1609,8 +1830,17 @@ return (
             >
               History
             </button>
-            {forecastView === "entry" && items.length > 0 && <StatusPill>{filteredItems.length} of {items.length} items</StatusPill>}
-            {forecastView === "history" && historyRows.length > 0 && <StatusPill>{filteredHistoryRows.length} of {historyRows.length} history lines</StatusPill>}
+            {forecastView === "entry" && items.length > 0 && (
+              <StatusPill>
+                {filteredItems.length} of {items.length} items
+              </StatusPill>
+            )}
+            {forecastView === "history" && historyRows.length > 0 && (
+              <StatusPill>
+                {filteredHistoryRows.length} of {historyRows.length} history
+                lines
+              </StatusPill>
+            )}
           </div>
 
           <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
@@ -1619,27 +1849,45 @@ return (
                 <StatusPill variant="warning" className="min-h-[34px]">
                   <Clock3 className="mr-1 h-3 w-3 shrink-0" />
                   <span className="sm:hidden">Cutoff 1:00 PM</span>
-                  <span className="hidden sm:inline">All order confirmations must be completed on or before 1:00 PM.</span>
+                  <span className="hidden sm:inline">
+                    Order forecasts must be submitted on or before 1:00 PM.
+                  </span>
                 </StatusPill>
-                <ActionButton icon={RefreshCw} onClick={() => loadItems({ refreshItems: true })} disabled={forecastLoading || !hasTaggedBranch}>
+                <ActionButton
+                  icon={RefreshCw}
+                  onClick={() => loadItems({ refreshItems: true })}
+                  disabled={forecastLoading || !hasTaggedBranch}
+                >
                   {forecastLoading ? "Loading..." : "Load Items"}
                 </ActionButton>
-                <ActionButton icon={RotateCcw} onClick={resetWeeklyForecast} disabled={forecastLoading || items.length === 0}>
+                <ActionButton
+                  icon={RotateCcw}
+                  onClick={resetWeeklyForecast}
+                  disabled={forecastLoading || items.length === 0}
+                >
                   Reset
                 </ActionButton>
                 <ActionButton
                   icon={ChevronDown}
                   onClick={handleToggleAllCategories}
-                  disabled={forecastLoading || groupedForecastItems.length === 0}
+                  disabled={
+                    forecastLoading || groupedForecastItems.length === 0
+                  }
                 >
-                  {visibleCollapsedCategoryCount === groupedForecastItems.length && groupedForecastItems.length > 0
+                  {visibleCollapsedCategoryCount ===
+                    groupedForecastItems.length &&
+                  groupedForecastItems.length > 0
                     ? "Show Categories"
                     : "Collapse Categories"}
                 </ActionButton>
               </>
             ) : (
               <>
-                <ActionButton icon={RefreshCw} onClick={() => loadHistory()} disabled={historyLoading || !hasTaggedBranch}>
+                <ActionButton
+                  icon={RefreshCw}
+                  onClick={() => loadHistory()}
+                  disabled={historyLoading || !hasTaggedBranch}
+                >
                   {historyLoading ? "Loading..." : "Load History"}
                 </ActionButton>
                 <ActionButton
@@ -1647,7 +1895,8 @@ return (
                   onClick={handleToggleAllHistoryCategories}
                   disabled={historyLoading || groupedHistoryRows.length === 0}
                 >
-                  {visibleCollapsedHistoryCategoryCount === groupedHistoryRows.length && groupedHistoryRows.length > 0
+                  {visibleCollapsedHistoryCategoryCount ===
+                    groupedHistoryRows.length && groupedHistoryRows.length > 0
                     ? "Show Categories"
                     : "Collapse Categories"}
                 </ActionButton>
@@ -1657,9 +1906,28 @@ return (
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <FloatingField id="forecastStartDate" label="Start Date" type="date" value={startDate} onChange={setStartDate} />
-          <FloatingField id="forecastEndDate" label="End Date" type="date" value={endDate} onChange={setEndDate} />
-          <FloatingField id="forecastDayCount" label={forecastView === "history" ? "History Days" : "Forecast Days"} value={dates.length ? String(dates.length) : "0"} readOnly />
+          <FloatingField
+            id="forecastStartDate"
+            label="From Delivery Date"
+            type="date"
+            value={startDate}
+            onChange={setStartDate}
+          />
+          <FloatingField
+            id="forecastEndDate"
+            label="To Delivery Date"
+            type="date"
+            value={endDate}
+            onChange={setEndDate}
+          />
+          <FloatingField
+            id="forecastDayCount"
+            label={
+              forecastView === "history" ? "History Days" : "Forecast Days"
+            }
+            value={dates.length ? String(dates.length) : "0"}
+            readOnly
+          />
           {forecastView === "entry" ? (
             <FloatingField
               id="categoryFilter"
@@ -1697,277 +1965,19 @@ return (
 
         {forecastView === "entry" ? (
           <>
-        <div className="mt-3 space-y-3 md:hidden">
-          {groupedForecastItems.map((group) => {
-            const isCollapsed = isCategoryCollapsed(group.category);
-            const categoryTotal = getCategoryForecastTotal(group.items);
-
-            return (
-              <div key={`${group.category}-weekly-group`} className="space-y-3">
-                <button
-                  type="button"
-                  onClick={() => toggleCategoryCollapse(group.category)}
-                  aria-expanded={!isCollapsed}
-                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-xs font-bold uppercase shadow-sm transition-colors ${
-                    isCollapsed
-                      ? "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-gray-800 dark:text-slate-200"
-                      : "border-blue-200 bg-blue-50 text-blue-800 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-100"
-                  }`}
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <ChevronDown
-                      className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
-                        isCollapsed ? "-rotate-90" : "rotate-0"
-                      }`}
-                    />
-                    <span className="truncate">Category: {group.category}</span>
-                  </span>
-                  <span className="shrink-0 text-right font-semibold normal-case">
-                    {group.items.length} item{group.items.length === 1 ? "" : "s"} • Total {categoryTotal.toLocaleString()}
-                  </span>
-                </button>
-
-                {!isCollapsed &&
-                  group.items.map((item) => (
-                    <div
-                      key={`${item.itemCode || item.__displayIndex}-weekly-card`}
-                      className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-gray-800"
-                    >
-                      <div className="flex items-start justify-between gap-3 border-b border-slate-100 bg-blue-50 px-3 py-2 dark:border-slate-700 dark:bg-blue-900/30">
-                        <div className="min-w-0">
-                          <div className="font-mono text-[11px] font-bold text-slate-600 dark:text-slate-300">
-                            {item.itemCode}
-                          </div>
-                          <div className="truncate text-sm font-semibold text-slate-900 dark:text-white">
-                            {item.itemName}
-                          </div>
-                          <div className="mt-1 truncate text-[10px] font-bold uppercase text-slate-500 dark:text-slate-300">
-                            Category: {item.categCode || "-"}
-                          </div>
-                        </div>
-                        <span className="shrink-0 rounded-md bg-white px-2 py-1 text-[10px] font-bold text-slate-700 shadow-sm dark:bg-gray-900 dark:text-slate-200">
-                          {item.uomCode || "-"}
-                        </span>
-                      </div>
-
-                      <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                        {dates.map((date, dateIndex) => {
-                          const isConfirmed = isForecastCellConfirmed(item.itemCode, date);
-                          const isLocked = isForecastCellLocked(item.itemCode, date);
-
-                          return (
-                            <div
-                              key={`${item.itemCode}-${date}-weekly-card-row`}
-                              className="flex items-center justify-between gap-3 px-3 py-2"
-                            >
-                              <div className="min-w-0">
-                                <div className="text-[11px] font-bold text-slate-500 dark:text-slate-300">
-                                  {dayLabel(date)}
-                                </div>
-                                <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                                  {shortDate(date)}
-                                </div>
-                                {isConfirmed && (
-                                  <div className="text-[10px] font-bold uppercase text-green-600 dark:text-green-300">
-                                    Confirmed
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="w-28 shrink-0 rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-gray-900">
-                                <QuantityInput
-                                  value={orderMatrix[item.itemCode]?.[date] ?? 0}
-                                  onChange={(value) => handleQtyChange(item.itemCode, date, value)}
-                                  disabled={isLocked}
-                                  navGroup="weekly-mobile"
-                                  navRow={(item.__displayIndex || 0) * dates.length + dateIndex}
-                                  navCol={0}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      <div className="flex items-center justify-between bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 dark:bg-gray-900 dark:text-white">
-                        <span>Total</span>
-                        <span>{getItemForecastTotal(item.itemCode).toLocaleString()}</span>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            );
-          })}
-
-          {filteredItems.length === 0 && (
-            <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500 shadow-sm dark:border-slate-700 dark:bg-gray-800 dark:text-slate-300">
-              <div className="flex flex-col items-center justify-center gap-2">
-                <PackageOpen className="h-8 w-8 text-slate-400" />
-                <span>{hasTaggedBranch ? (items.length > 0 ? "No items found for the selected category." : "No forecast items loaded.") : "Assign a branch to this user before ordering."}</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="global-tran-table-main-div-ui mt-3 hidden max-w-full overflow-x-auto sm:mt-4 md:block">
-          <div className="global-tran-table-main-sub-div-ui relative isolate !max-h-[56vh] sm:!max-h-[360px]">
-            <table className="w-max min-w-full table-fixed border-separate border-spacing-0 [&_td]:border-b [&_td]:border-r [&_td]:border-slate-200 [&_th]:border-b [&_th]:border-r [&_th]:border-slate-200 [&_tr>td:first-child]:border-l">
-              <thead className="global-tran-thead-div-ui sticky top-0 z-[220]">
-                <tr>
-                  <th className="global-tran-th-ui sticky left-0 top-0 z-[240] w-[96px] min-w-[96px] max-w-[96px] bg-blue-100 text-left dark:bg-blue-900">Code</th>
-                  <th className="global-tran-th-ui sticky left-[96px] top-0 z-[240] w-[240px] min-w-[240px] max-w-[240px] bg-blue-100 text-left dark:bg-blue-900">Item Name</th>
-                  <th className="global-tran-th-ui sticky left-[336px] top-0 z-[240] w-[100px] min-w-[100px] max-w-[100px] bg-blue-100 text-left dark:bg-blue-900">Category</th>
-                  <th className="global-tran-th-ui sticky left-[436px] top-0 z-[240] w-[72px] min-w-[72px] max-w-[72px] bg-blue-100 text-center shadow-[2px_0_0_0_rgba(226,232,240,1)] dark:bg-blue-900">UOM</th>
-                  {dates.map((date) => (
-                    <th key={date} className="global-tran-th-ui sticky top-0 z-[210] w-[96px] min-w-[96px] max-w-[96px] bg-blue-100 dark:bg-blue-900">
-                      <div className="text-[10px] font-bold text-slate-500 dark:text-slate-300">{dayLabel(date)}</div>
-                      <div>{shortDate(date)}</div>
-                    </th>
-                  ))}
-                  <th className="global-tran-th-ui sticky top-0 z-[210] w-[100px] min-w-[100px] max-w-[100px] bg-blue-100 text-right dark:bg-blue-900">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {groupedForecastItems.map((group) => {
-                  const isCollapsed = isCategoryCollapsed(group.category);
-                  const categoryTotal = getCategoryForecastTotal(group.items);
-
-                  return (
-                    <Fragment key={`${group.category}-weekly-table-group`}>
-                      <tr className={isCollapsed ? "bg-slate-50 dark:bg-slate-900/60" : "bg-blue-50/80 dark:bg-blue-900/30"}>
-                        <td
-                          className="global-tran-td-ui text-left text-xs font-bold uppercase tracking-wide text-blue-800 dark:text-blue-100"
-                          colSpan={dates.length + 5 || 5}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => toggleCategoryCollapse(group.category)}
-                            aria-expanded={!isCollapsed}
-                            className="flex w-full items-center justify-between gap-3 text-left"
-                          >
-                            <span className="flex min-w-0 items-center gap-2">
-                              <span
-                                className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded transition-colors ${
-                                  isCollapsed
-                                    ? "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
-                                    : "bg-blue-600 text-white shadow-inner"
-                                }`}
-                                title={isCollapsed ? "Show Category" : "Collapse Category"}
-                              >
-                                <ChevronDown
-                                  className={`h-3.5 w-3.5 transition-transform duration-200 ${
-                                    isCollapsed ? "-rotate-90" : "rotate-0"
-                                  }`}
-                                />
-                              </span>
-                              <span className="truncate">Category: {group.category}</span>
-                              <span className="font-semibold normal-case text-slate-500 dark:text-slate-300">
-                                ({group.items.length} item{group.items.length === 1 ? "" : "s"})
-                              </span>
-                            </span>
-                            <span className="shrink-0 font-semibold normal-case text-slate-600 dark:text-slate-300">
-                              Total: {categoryTotal.toLocaleString()}
-                            </span>
-                          </button>
-                        </td>
-                      </tr>
-
-                      {!isCollapsed &&
-                        group.items.map((item) => (
-                          <tr key={item.itemCode || item.__displayIndex} className="global-tran-tr-ui">
-                            <td className="global-tran-td-ui sticky left-0 z-[40] w-[96px] min-w-[96px] max-w-[96px] overflow-hidden text-ellipsis whitespace-nowrap bg-white font-mono font-semibold dark:bg-black">{item.itemCode}</td>
-                            <td className="global-tran-td-ui sticky left-[96px] z-[40] w-[240px] min-w-[240px] max-w-[240px] bg-white font-medium dark:bg-black">
-                              <span className="block truncate">{item.itemName}</span>
-                            </td>
-                            <td className="global-tran-td-ui sticky left-[336px] z-[40] w-[100px] min-w-[100px] max-w-[100px] overflow-hidden text-ellipsis whitespace-nowrap bg-white text-xs font-semibold text-slate-700 dark:bg-black dark:text-slate-200">{item.categCode || "-"}</td>
-                            <td className="global-tran-td-ui sticky left-[436px] z-[40] w-[72px] min-w-[72px] max-w-[72px] bg-white text-center shadow-[2px_0_0_0_rgba(226,232,240,1)] dark:bg-black">
-                              <span className="block w-full text-center text-xs font-medium text-slate-700 dark:text-slate-200">{item.uomCode || "-"}</span>
-                            </td>
-                            {dates.map((date, dateIndex) => (
-                              <td key={`${item.itemCode}-${date}`} className="global-tran-td-ui w-[96px] min-w-[96px] max-w-[96px] text-center">
-                                <QuantityInput
-                                  value={orderMatrix[item.itemCode]?.[date] ?? 0}
-                                  onChange={(value) => handleQtyChange(item.itemCode, date, value)}
-                                  disabled={isForecastCellLocked(item.itemCode, date)}
-                                  navGroup="weekly"
-                                  navRow={item.__displayIndex || 0}
-                                  navCol={dateIndex}
-                                />
-                              </td>
-                            ))}
-                            <td className="global-tran-td-ui w-[100px] min-w-[100px] max-w-[100px] bg-slate-50 text-right text-xs font-bold text-slate-800 dark:bg-gray-900 dark:text-white">
-                              {getItemForecastTotal(item.itemCode).toLocaleString()}
-                            </td>
-                          </tr>
-                        ))}
-                    </Fragment>
-                  );
-                })}
-
-                {filteredItems.length > 0 && (
-                  <tr className="bg-blue-50/80 font-bold dark:bg-blue-900/30">
-                    <td className="global-tran-td-ui sticky left-0 z-[40] w-[508px] min-w-[508px] max-w-[508px] bg-blue-50 text-left text-xs font-bold text-slate-800 dark:bg-blue-900 dark:text-white" colSpan={4}>
-                      Total Per Day
-                    </td>
-                    {dates.map((date) => (
-                      <td key={`total-${date}`} className="global-tran-td-ui w-[96px] min-w-[96px] max-w-[96px] text-right text-xs font-bold text-slate-800 dark:text-white">
-                        {(totalForecastPerDay[date] || 0).toLocaleString()}
-                      </td>
-                    ))}
-                    <td className="global-tran-td-ui w-[100px] min-w-[100px] max-w-[100px] bg-blue-100 text-right text-xs font-bold text-slate-900 dark:bg-blue-900 dark:text-white">
-                      {totalForecastQty.toLocaleString()}
-                    </td>
-                  </tr>
-                )}
-
-                {filteredItems.length === 0 && (
-                  <tr>
-                    <td colSpan={dates.length + 5 || 5} className="global-tran-td-ui py-10 text-center text-sm text-slate-500">
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <PackageOpen className="h-8 w-8 text-slate-400" />
-                        <span>{hasTaggedBranch ? (items.length > 0 ? "No items found for the selected category." : "No forecast items loaded.") : "Assign a branch to this user before ordering."}</span>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="global-tran-tab-footer-main-div-ui !mt-4 !gap-3">
-          <div className="global-tran-tab-footer-button-div-ui w-full sm:w-auto">
-            <ActionButton
-              icon={Send}
-              onClick={submitWeeklyForecast}
-              disabled={!hasTaggedBranch || items.length === 0 || forecastSubmitting}
-              variant="success"
-            >
-              {forecastSubmitting ? "Submitting..." : "Submit Order Forecast"}
-            </ActionButton>
-          </div>
-
-          <div className="global-tran-tab-footer-total-main-div-ui w-full rounded-lg bg-blue-50/60 px-3 py-2 sm:w-auto dark:bg-gray-900/40">
-            <div className="global-tran-tab-footer-total-div-ui">
-              <label className="global-tran-tab-footer-total-label-ui">Total Forecast Qty:</label>
-              <label className="global-tran-tab-footer-total-value-ui">{totalForecastQty.toLocaleString()}</label>
-            </div>
-          </div>
-        </div>
-
-          </>
-        ) : (
-          <>
             <div className="mt-3 space-y-3 md:hidden">
-              {groupedHistoryRows.map((group) => {
-                const isCollapsed = isHistoryCategoryCollapsed(group.category);
-                const categoryTotals = getHistoryCategoryTotals(group.rows);
+              {groupedForecastItems.map((group) => {
+                const isCollapsed = isCategoryCollapsed(group.category);
+                const categoryTotal = getCategoryForecastTotal(group.items);
 
                 return (
-                  <div key={`${group.category}-history-group`} className="space-y-3">
+                  <div
+                    key={`${group.category}-weekly-group`}
+                    className="space-y-3"
+                  >
                     <button
                       type="button"
-                      onClick={() => toggleHistoryCategoryCollapse(group.category)}
+                      onClick={() => toggleCategoryCollapse(group.category)}
                       aria-expanded={!isCollapsed}
                       className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-xs font-bold uppercase shadow-sm transition-colors ${
                         isCollapsed
@@ -1981,10 +1991,443 @@ return (
                             isCollapsed ? "-rotate-90" : "rotate-0"
                           }`}
                         />
-                        <span className="truncate">Category: {group.category}</span>
+                        <span className="truncate">
+                          Category: {group.category}
+                        </span>
                       </span>
                       <span className="shrink-0 text-right font-semibold normal-case">
-                        {group.rows.length} line{group.rows.length === 1 ? "" : "s"} • Original {categoryTotals.originalQty.toLocaleString()} • Confirmed {categoryTotals.confirmedQty.toLocaleString()}
+                        {group.items.length} item
+                        {group.items.length === 1 ? "" : "s"} • Total{" "}
+                        {categoryTotal.toLocaleString()}
+                      </span>
+                    </button>
+
+                    {!isCollapsed &&
+                      group.items.map((item) => (
+                        <div
+                          key={`${item.itemCode || item.__displayIndex}-weekly-card`}
+                          className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-gray-800"
+                        >
+                          <div className="flex items-start justify-between gap-3 border-b border-slate-100 bg-blue-50 px-3 py-2 dark:border-slate-700 dark:bg-blue-900/30">
+                            <div className="min-w-0">
+                              <div className="font-mono text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                                {item.itemCode}
+                              </div>
+                              <div className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                                {item.itemName}
+                              </div>
+                              <div className="mt-1 truncate text-[10px] font-bold uppercase text-slate-500 dark:text-slate-300">
+                              Category: {getCategoryLabel(item)}
+                              </div>
+                            </div>
+                            <span className="shrink-0 rounded-md bg-white px-2 py-1 text-[10px] font-bold text-slate-700 shadow-sm dark:bg-gray-900 dark:text-slate-200">
+                              {item.uomCode || "-"}
+                            </span>
+                          </div>
+
+                          <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                            {dates.map((date, dateIndex) => {
+                              const isConfirmed = isForecastCellConfirmed(
+                                item.itemCode,
+                                date,
+                              );
+                              const isLocked = isForecastCellLocked(
+                                item.itemCode,
+                                date,
+                              );
+
+                              return (
+                                <div
+                                  key={`${item.itemCode}-${date}-weekly-card-row`}
+                                  className="flex items-center justify-between gap-3 px-3 py-2"
+                                >
+                                  <div className="min-w-0">
+                                    <div className="text-[11px] font-bold text-slate-500 dark:text-slate-300">
+                                      {dayLabel(date)}
+                                    </div>
+                                    <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                                      {shortDate(date)}
+                                    </div>
+                                    {isConfirmed && (
+                                      <div className="text-[10px] font-bold uppercase text-green-600 dark:text-green-300">
+                                        Confirmed
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div className="w-28 shrink-0 rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-gray-900">
+                                    <QuantityInput
+                                      value={
+                                        orderMatrix[item.itemCode]?.[date] ?? 0
+                                      }
+                                      onChange={(value) =>
+                                        handleQtyChange(
+                                          item.itemCode,
+                                          date,
+                                          value,
+                                        )
+                                      }
+                                      disabled={isLocked}
+                                      navGroup="weekly-mobile"
+                                      navRow={
+                                        (item.__displayIndex || 0) *
+                                          dates.length +
+                                        dateIndex
+                                      }
+                                      navCol={0}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          <div className="flex items-center justify-between bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 dark:bg-gray-900 dark:text-white">
+                            <span>Total</span>
+                            <span>
+                              {getItemForecastTotal(
+                                item.itemCode,
+                              ).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                );
+              })}
+
+              {filteredItems.length === 0 && (
+                <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500 shadow-sm dark:border-slate-700 dark:bg-gray-800 dark:text-slate-300">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <PackageOpen className="h-8 w-8 text-slate-400" />
+                    <span>
+                      {hasTaggedBranch
+                        ? items.length > 0
+                          ? "No items found for the selected category."
+                          : "No forecast items loaded."
+                        : "Assign a branch to this user before ordering."}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="global-tran-table-main-div-ui mt-3 hidden max-w-full overflow-x-auto sm:mt-4 md:block">
+              <div className="global-tran-table-main-sub-div-ui relative isolate !max-h-[56vh] sm:!max-h-[360px]">
+                <table className="w-max min-w-full table-fixed border-separate border-spacing-0 text-[11px] [&_td]:!px-1.5 [&_td]:!py-1 [&_td]:border-b [&_td]:border-r [&_td]:border-slate-200 [&_th]:!px-1.5 [&_th]:!py-1 [&_th]:border-b [&_th]:border-r [&_th]:border-slate-200 [&_tr>td:first-child]:border-l">
+                  <thead className="global-tran-thead-div-ui sticky top-0 z-[220]">
+                    <tr>
+                      <th className="global-tran-th-ui sticky left-0 top-0 z-[240] w-[82px] min-w-[82px] max-w-[82px] bg-blue-100 text-left dark:bg-blue-900">
+                        <div>Code</div>
+                        <TableHeaderFilter
+                          compact
+                          value={forecastColumnFilters.itemCode}
+                          onChange={(value) =>
+                            setForecastColumnFilters((prev) => ({
+                              ...prev,
+                              itemCode: value,
+                            }))
+                          }
+                          placeholder="Search code"
+                          ariaLabel="Filter forecast by item code"
+                        />
+                      </th>
+                      <th className="global-tran-th-ui sticky left-[82px] top-0 z-[240] w-[190px] min-w-[190px] max-w-[190px] bg-blue-100 text-left dark:bg-blue-900">
+                        <div>Item Name</div>
+                        <TableHeaderFilter
+                          compact
+                          value={forecastColumnFilters.itemName}
+                          onChange={(value) =>
+                            setForecastColumnFilters((prev) => ({
+                              ...prev,
+                              itemName: value,
+                            }))
+                          }
+                          placeholder="Search item"
+                          ariaLabel="Filter forecast by item name"
+                        />
+                      </th>
+                      <th className="global-tran-th-ui sticky left-[272px] top-0 z-[240] w-[80px] min-w-[80px] max-w-[80px] bg-blue-100 text-left dark:bg-blue-900">
+                        <div>Category</div>
+                        <TableHeaderFilter
+                          compact
+                          value={forecastColumnFilters.category}
+                          onChange={(value) =>
+                            setForecastColumnFilters((prev) => ({
+                              ...prev,
+                              category: value,
+                            }))
+                          }
+                          placeholder="Filter"
+                          ariaLabel="Filter forecast by category"
+                        />
+                      </th>
+                      <th className="global-tran-th-ui sticky left-[352px] top-0 z-[240] w-[58px] min-w-[58px] max-w-[58px] bg-blue-100 text-center shadow-[2px_0_0_0_rgba(226,232,240,1)] dark:bg-blue-900">
+                        <div>UOM</div>
+                        <TableHeaderFilter
+                          compact
+                          value={forecastColumnFilters.uom}
+                          onChange={(value) =>
+                            setForecastColumnFilters((prev) => ({
+                              ...prev,
+                              uom: value,
+                            }))
+                          }
+                          placeholder="Filter"
+                          ariaLabel="Filter forecast by UOM"
+                        />
+                      </th>
+                      {dates.map((date) => (
+                        <th
+                          key={date}
+                          className="global-tran-th-ui sticky top-0 z-[210] w-[76px] min-w-[76px] max-w-[76px] bg-blue-100 dark:bg-blue-900"
+                        >
+                          <div className="text-[10px] font-bold text-slate-500 dark:text-slate-300">
+                            {dayLabel(date)}
+                          </div>
+                          <div>{shortDate(date)}</div>
+                        </th>
+                      ))}
+                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[84px] min-w-[84px] max-w-[84px] bg-blue-100 text-right dark:bg-blue-900">
+                        Total
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {groupedForecastItems.map((group) => {
+                      const isCollapsed = isCategoryCollapsed(group.category);
+                      const categoryTotal = getCategoryForecastTotal(
+                        group.items,
+                      );
+
+                      return (
+                        <Fragment key={`${group.category}-weekly-table-group`}>
+                          <tr
+                            className={
+                              isCollapsed
+                                ? "bg-slate-50 dark:bg-slate-900/60"
+                                : "bg-blue-50/80 dark:bg-blue-900/30"
+                            }
+                          >
+                            <td
+                              className="global-tran-td-ui text-left text-xs font-bold uppercase tracking-wide text-blue-800 dark:text-blue-100"
+                              colSpan={dates.length + 5 || 5}
+                            >
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  toggleCategoryCollapse(group.category)
+                                }
+                                aria-expanded={!isCollapsed}
+                                className="flex w-full items-center justify-between gap-3 text-left"
+                              >
+                                <span className="flex min-w-0 items-center gap-2">
+                                  <span
+                                    className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded transition-colors ${
+                                      isCollapsed
+                                        ? "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                                        : "bg-blue-600 text-white shadow-inner"
+                                    }`}
+                                    title={
+                                      isCollapsed
+                                        ? "Show Category"
+                                        : "Collapse Category"
+                                    }
+                                  >
+                                    <ChevronDown
+                                      className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                                        isCollapsed ? "-rotate-90" : "rotate-0"
+                                      }`}
+                                    />
+                                  </span>
+                                  <span className="truncate">
+                                    Category: {group.category}
+                                  </span>
+                                  <span className="font-semibold normal-case text-slate-500 dark:text-slate-300">
+                                    ({group.items.length} item
+                                    {group.items.length === 1 ? "" : "s"})
+                                  </span>
+                                </span>
+                                <span className="shrink-0 font-semibold normal-case text-slate-600 dark:text-slate-300">
+                                  Total: {categoryTotal.toLocaleString()}
+                                </span>
+                              </button>
+                            </td>
+                          </tr>
+
+                          {!isCollapsed &&
+                            group.items.map((item) => (
+                              <tr
+                                key={item.itemCode || item.__displayIndex}
+                                className="global-tran-tr-ui"
+                              >
+                                <td className="global-tran-td-ui sticky left-0 z-[40] w-[82px] min-w-[82px] max-w-[82px] overflow-hidden text-ellipsis whitespace-nowrap bg-white font-mono font-semibold dark:bg-black">
+                                  {item.itemCode}
+                                </td>
+                                <td className="global-tran-td-ui sticky left-[82px] z-[40] w-[190px] min-w-[190px] max-w-[190px] bg-white font-medium dark:bg-black">
+                                  <span className="block truncate">
+                                    {item.itemName}
+                                  </span>
+                                </td>
+                                <td className="global-tran-td-ui sticky left-[272px] z-[40] w-[80px] min-w-[80px] max-w-[80px] overflow-hidden text-ellipsis whitespace-nowrap bg-white text-[11px] font-semibold text-slate-700 dark:bg-black dark:text-slate-200">
+                                  {getCategoryLabel(item)}
+                                </td>
+                                <td className="global-tran-td-ui sticky left-[352px] z-[40] w-[58px] min-w-[58px] max-w-[58px] bg-white text-center shadow-[2px_0_0_0_rgba(226,232,240,1)] dark:bg-black">
+                                  <span className="block w-full text-center text-[11px] font-medium text-slate-700 dark:text-slate-200">
+                                    {item.uomCode || "-"}
+                                  </span>
+                                </td>
+                                {dates.map((date, dateIndex) => (
+                                  <td
+                                    key={`${item.itemCode}-${date}`}
+                                    className="global-tran-td-ui w-[76px] min-w-[76px] max-w-[76px] text-center"
+                                  >
+                                    <QuantityInput
+                                      compact
+                                      value={
+                                        orderMatrix[item.itemCode]?.[date] ?? 0
+                                      }
+                                      onChange={(value) =>
+                                        handleQtyChange(
+                                          item.itemCode,
+                                          date,
+                                          value,
+                                        )
+                                      }
+                                      disabled={isForecastCellLocked(
+                                        item.itemCode,
+                                        date,
+                                      )}
+                                      navGroup="weekly"
+                                      navRow={item.__displayIndex || 0}
+                                      navCol={dateIndex}
+                                    />
+                                  </td>
+                                ))}
+                                <td className="global-tran-td-ui w-[84px] min-w-[84px] max-w-[84px] bg-slate-50 text-right text-[11px] font-bold text-slate-800 dark:bg-gray-900 dark:text-white">
+                                  {getItemForecastTotal(
+                                    item.itemCode,
+                                  ).toLocaleString()}
+                                </td>
+                              </tr>
+                            ))}
+                        </Fragment>
+                      );
+                    })}
+
+                    {filteredItems.length > 0 && (
+                      <tr className="bg-blue-50/80 font-bold dark:bg-blue-900/30">
+                        <td
+                          className="global-tran-td-ui sticky left-0 z-[40] w-[410px] min-w-[410px] max-w-[410px] bg-blue-50 text-left text-[11px] font-bold text-slate-800 dark:bg-blue-900 dark:text-white"
+                          colSpan={4}
+                        >
+                          Total Per Day
+                        </td>
+                        {dates.map((date) => (
+                          <td
+                            key={`total-${date}`}
+                            className="global-tran-td-ui w-[76px] min-w-[76px] max-w-[76px] text-right text-[11px] font-bold text-slate-800 dark:text-white"
+                          >
+                            {(totalForecastPerDay[date] || 0).toLocaleString()}
+                          </td>
+                        ))}
+                        <td className="global-tran-td-ui w-[84px] min-w-[84px] max-w-[84px] bg-blue-100 text-right text-[11px] font-bold text-slate-900 dark:bg-blue-900 dark:text-white">
+                          {totalForecastQty.toLocaleString()}
+                        </td>
+                      </tr>
+                    )}
+
+                    {filteredItems.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={dates.length + 5 || 5}
+                          className="global-tran-td-ui py-10 text-center text-sm text-slate-500"
+                        >
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <PackageOpen className="h-8 w-8 text-slate-400" />
+                            <span>
+                              {hasTaggedBranch
+                                ? items.length > 0
+                                  ? "No items found for the selected category."
+                                  : "No forecast items loaded."
+                                : "Assign a branch to this user before ordering."}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="global-tran-tab-footer-main-div-ui !mt-4 !gap-3">
+              <div className="global-tran-tab-footer-button-div-ui w-full sm:w-auto">
+                <ActionButton
+                  icon={Send}
+                  onClick={submitWeeklyForecast}
+                  disabled={
+                    !hasTaggedBranch || items.length === 0 || forecastSubmitting
+                  }
+                  variant="success"
+                >
+                  {forecastSubmitting
+                    ? "Submitting..."
+                    : "Submit Order Forecast"}
+                </ActionButton>
+              </div>
+
+              <div className="global-tran-tab-footer-total-main-div-ui w-full rounded-lg bg-blue-50/60 px-3 py-2 sm:w-auto dark:bg-gray-900/40">
+                <div className="global-tran-tab-footer-total-div-ui">
+                  <label className="global-tran-tab-footer-total-label-ui">
+                    Total Forecast Qty:
+                  </label>
+                  <label className="global-tran-tab-footer-total-value-ui">
+                    {totalForecastQty.toLocaleString()}
+                  </label>
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="mt-3 space-y-3 md:hidden">
+              {groupedHistoryRows.map((group) => {
+                const isCollapsed = isHistoryCategoryCollapsed(group.category);
+                const categoryTotals = getHistoryCategoryTotals(group.rows);
+
+                return (
+                  <div
+                    key={`${group.category}-history-group`}
+                    className="space-y-3"
+                  >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        toggleHistoryCategoryCollapse(group.category)
+                      }
+                      aria-expanded={!isCollapsed}
+                      className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-xs font-bold uppercase shadow-sm transition-colors ${
+                        isCollapsed
+                          ? "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-gray-800 dark:text-slate-200"
+                          : "border-blue-200 bg-blue-50 text-blue-800 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-100"
+                      }`}
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        <ChevronDown
+                          className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
+                            isCollapsed ? "-rotate-90" : "rotate-0"
+                          }`}
+                        />
+                        <span className="truncate">
+                          Category: {group.category}
+                        </span>
+                      </span>
+                      <span className="shrink-0 text-right font-semibold normal-case">
+                        {group.rows.length} line
+                        {group.rows.length === 1 ? "" : "s"} • Original{" "}
+                        {categoryTotals.originalQty.toLocaleString()} •
+                        Confirmed {categoryTotals.confirmedQty.toLocaleString()}
                       </span>
                     </button>
 
@@ -2003,7 +2446,7 @@ return (
                                 {row.itemName}
                               </div>
                               <div className="mt-1 truncate text-[10px] font-bold uppercase text-slate-500 dark:text-slate-300">
-                                Category: {row.categCode || "-"}
+                                Category: {getCategoryLabel(row)}
                               </div>
                             </div>
                             <span className="shrink-0 rounded-md bg-white px-2 py-1 text-[10px] font-bold text-slate-700 shadow-sm dark:bg-gray-900 dark:text-slate-200">
@@ -2013,42 +2456,83 @@ return (
 
                           <div className="grid grid-cols-2 gap-3 px-3 py-3 text-xs">
                             <div>
-                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">Delivery Date</div>
-                              <div className="font-semibold text-slate-900 dark:text-white">{row.deliveryDate}</div>
-                            </div>
-                            <div>
-                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">Status</div>
+                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">
+                                Delivery Date
+                              </div>
                               <div className="font-semibold text-slate-900 dark:text-white">
-                                {row.status}{row.isLatestRevision ? " • Latest" : ""}
+                                {row.deliveryDate}
                               </div>
                             </div>
                             <div>
-                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">Revision</div>
-                              <div className="font-semibold text-slate-900 dark:text-white">R{row.revisionNo || 1}</div>
+                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">
+                                Status
+                              </div>
+                              <div className="font-semibold text-slate-900 dark:text-white">
+                                {row.status}
+                                {row.isLatestRevision ? " • Latest" : ""}
+                              </div>
                             </div>
                             <div>
-                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">Previous Qty</div>
-                              <div className="font-semibold text-slate-900 dark:text-white">{toNumber(row.previousWeeklyQty).toLocaleString()}</div>
+                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">
+                                Revision
+                              </div>
+                              <div className="font-semibold text-slate-900 dark:text-white">
+                                R{row.revisionNo || 1}
+                              </div>
                             </div>
                             <div>
-                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">Forecast Qty</div>
-                              <div className="font-semibold text-slate-900 dark:text-white">{toNumber(row.originalWeeklyQty).toLocaleString()}</div>
+                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">
+                                Previous Qty
+                              </div>
+                              <div className="font-semibold text-slate-900 dark:text-white">
+                                {toNumber(
+                                  row.previousWeeklyQty,
+                                ).toLocaleString()}
+                              </div>
                             </div>
                             <div>
-                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">Qty Change</div>
-                              <div className="font-semibold text-slate-900 dark:text-white">{toNumber(row.quantityChange).toLocaleString()}</div>
+                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">
+                                Forecast Qty
+                              </div>
+                              <div className="font-semibold text-slate-900 dark:text-white">
+                                {toNumber(
+                                  row.originalWeeklyQty,
+                                ).toLocaleString()}
+                              </div>
                             </div>
                             <div>
-                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">Confirmed Order</div>
-                              <div className="font-semibold text-green-700 dark:text-green-200">{toNumber(row.confirmedOrderQty).toLocaleString()}</div>
+                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">
+                                Qty Change
+                              </div>
+                              <div className="font-semibold text-slate-900 dark:text-white">
+                                {toNumber(row.quantityChange).toLocaleString()}
+                              </div>
                             </div>
                             <div>
-                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">Variance</div>
-                              <div className="font-semibold text-slate-900 dark:text-white">{toNumber(row.balanceQty).toLocaleString()}</div>
+                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">
+                                Confirmed Order
+                              </div>
+                              <div className="font-semibold text-green-700 dark:text-green-200">
+                                {toNumber(
+                                  row.confirmedOrderQty,
+                                ).toLocaleString()}
+                              </div>
                             </div>
                             <div>
-                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">Confirmed By</div>
-                              <div className="font-semibold text-slate-900 dark:text-white">{row.confirmedBy || "-"}</div>
+                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">
+                                Variance
+                              </div>
+                              <div className="font-semibold text-slate-900 dark:text-white">
+                                {toNumber(row.balanceQty).toLocaleString()}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="font-bold uppercase text-slate-500 dark:text-slate-300">
+                                Confirmed By
+                              </div>
+                              <div className="font-semibold text-slate-900 dark:text-white">
+                                {row.confirmedBy || "-"}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -2061,7 +2545,13 @@ return (
                 <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500 shadow-sm dark:border-slate-700 dark:bg-gray-800 dark:text-slate-300">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <PackageOpen className="h-8 w-8 text-slate-400" />
-                    <span>{hasTaggedBranch ? (historyRows.length > 0 ? "No history lines found for the selected category." : "No Order Forecast history loaded.") : "Assign a branch to this user before ordering."}</span>
+                    <span>
+                      {hasTaggedBranch
+                        ? historyRows.length > 0
+                          ? "No history lines found for the selected category."
+                          : "No Order Forecast history loaded."
+                        : "Assign a branch to this user before ordering."}
+                    </span>
                   </div>
                 </div>
               )}
@@ -2072,26 +2562,157 @@ return (
                 <table className="w-max min-w-full table-fixed border-separate border-spacing-0 [&_td]:border-b [&_td]:border-r [&_td]:border-slate-200 [&_th]:border-b [&_th]:border-r [&_th]:border-slate-200 [&_tr>td:first-child]:border-l">
                   <thead className="global-tran-thead-div-ui sticky top-0 z-[220]">
                     <tr>
-                      <th className="global-tran-th-ui sticky left-0 top-0 z-[240] w-[96px] min-w-[96px] max-w-[96px] bg-blue-100 text-left dark:bg-blue-900">Code</th>
-                      <th className="global-tran-th-ui sticky left-[96px] top-0 z-[240] w-[240px] min-w-[240px] max-w-[240px] bg-blue-100 text-left dark:bg-blue-900">Item Name</th>
-                      <th className="global-tran-th-ui sticky left-[336px] top-0 z-[240] w-[100px] min-w-[100px] max-w-[100px] bg-blue-100 text-left dark:bg-blue-900">Category</th>
-                      <th className="global-tran-th-ui sticky left-[436px] top-0 z-[240] w-[72px] min-w-[72px] max-w-[72px] bg-blue-100 text-center shadow-[2px_0_0_0_rgba(226,232,240,1)] dark:bg-blue-900">UOM</th>
-                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[120px] min-w-[120px] max-w-[120px] bg-blue-100 text-left dark:bg-blue-900">Delivery Date</th>
-                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[90px] min-w-[90px] max-w-[90px] bg-blue-100 text-center dark:bg-blue-900">Revision</th>
-                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[120px] min-w-[120px] max-w-[120px] bg-blue-100 text-right dark:bg-blue-900">Previous Qty</th>
-                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[130px] min-w-[130px] max-w-[130px] bg-blue-100 text-right dark:bg-blue-900">Forecast Qty</th>
-                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[110px] min-w-[110px] max-w-[110px] bg-blue-100 text-right dark:bg-blue-900">Qty Change</th>
-                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[140px] min-w-[140px] max-w-[140px] bg-blue-100 text-right dark:bg-blue-900">Confirmed Order</th>
-                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[110px] min-w-[110px] max-w-[110px] bg-blue-100 text-right dark:bg-blue-900">Variance</th>
-                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[120px] min-w-[120px] max-w-[120px] bg-blue-100 text-left dark:bg-blue-900">Status</th>
-                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[130px] min-w-[130px] max-w-[130px] bg-blue-100 text-left dark:bg-blue-900">Confirmed By</th>
-                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[130px] min-w-[130px] max-w-[130px] bg-blue-100 text-left dark:bg-blue-900">Confirmed Date</th>
+                      <th className="global-tran-th-ui sticky left-0 top-0 z-[240] w-[96px] min-w-[96px] max-w-[96px] bg-blue-100 text-left dark:bg-blue-900">
+                        <div>Code</div>
+                        <TableHeaderFilter
+                          value={historyColumnFilters.itemCode}
+                          onChange={(value) =>
+                            setHistoryColumnFilters((prev) => ({
+                              ...prev,
+                              itemCode: value,
+                            }))
+                          }
+                          placeholder="Search code"
+                          ariaLabel="Filter history by item code"
+                        />
+                      </th>
+                      <th className="global-tran-th-ui sticky left-[96px] top-0 z-[240] w-[240px] min-w-[240px] max-w-[240px] bg-blue-100 text-left dark:bg-blue-900">
+                        <div>Item Name</div>
+                        <TableHeaderFilter
+                          value={historyColumnFilters.itemName}
+                          onChange={(value) =>
+                            setHistoryColumnFilters((prev) => ({
+                              ...prev,
+                              itemName: value,
+                            }))
+                          }
+                          placeholder="Search item"
+                          ariaLabel="Filter history by item name"
+                        />
+                      </th>
+                      <th className="global-tran-th-ui sticky left-[336px] top-0 z-[240] w-[100px] min-w-[100px] max-w-[100px] bg-blue-100 text-left dark:bg-blue-900">
+                        <div>Category</div>
+                        <TableHeaderFilter
+                          value={historyColumnFilters.category}
+                          onChange={(value) =>
+                            setHistoryColumnFilters((prev) => ({
+                              ...prev,
+                              category: value,
+                            }))
+                          }
+                          placeholder="Filter"
+                          ariaLabel="Filter history by category"
+                        />
+                      </th>
+                      <th className="global-tran-th-ui sticky left-[436px] top-0 z-[240] w-[72px] min-w-[72px] max-w-[72px] bg-blue-100 text-center shadow-[2px_0_0_0_rgba(226,232,240,1)] dark:bg-blue-900">
+                        <div>UOM</div>
+                        <TableHeaderFilter
+                          value={historyColumnFilters.uom}
+                          onChange={(value) =>
+                            setHistoryColumnFilters((prev) => ({
+                              ...prev,
+                              uom: value,
+                            }))
+                          }
+                          placeholder="Filter"
+                          ariaLabel="Filter history by UOM"
+                        />
+                      </th>
+                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[120px] min-w-[120px] max-w-[120px] bg-blue-100 text-left dark:bg-blue-900">
+                        <div>Delivery Date</div>
+                        <TableHeaderFilter
+                          value={historyColumnFilters.deliveryDate}
+                          onChange={(value) =>
+                            setHistoryColumnFilters((prev) => ({
+                              ...prev,
+                              deliveryDate: value,
+                            }))
+                          }
+                          placeholder="YYYY-MM-DD"
+                          ariaLabel="Filter history by delivery date"
+                        />
+                      </th>
+                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[90px] min-w-[90px] max-w-[90px] bg-blue-100 text-center dark:bg-blue-900">
+                        <div>Revision</div>
+                        <TableHeaderFilter
+                          value={historyColumnFilters.revision}
+                          onChange={(value) =>
+                            setHistoryColumnFilters((prev) => ({
+                              ...prev,
+                              revision: value,
+                            }))
+                          }
+                          placeholder="Filter"
+                          ariaLabel="Filter history by revision"
+                        />
+                      </th>
+                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[120px] min-w-[120px] max-w-[120px] bg-blue-100 text-right dark:bg-blue-900">
+                        Previous Qty
+                      </th>
+                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[130px] min-w-[130px] max-w-[130px] bg-blue-100 text-right dark:bg-blue-900">
+                        Forecast Qty
+                      </th>
+                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[110px] min-w-[110px] max-w-[110px] bg-blue-100 text-right dark:bg-blue-900">
+                        Qty Change
+                      </th>
+                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[140px] min-w-[140px] max-w-[140px] bg-blue-100 text-right dark:bg-blue-900">
+                        Confirmed Order
+                      </th>
+                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[110px] min-w-[110px] max-w-[110px] bg-blue-100 text-right dark:bg-blue-900">
+                        Variance
+                      </th>
+                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[120px] min-w-[120px] max-w-[120px] bg-blue-100 text-left dark:bg-blue-900">
+                        <div>Status</div>
+                        <TableHeaderFilter
+                          value={historyColumnFilters.status}
+                          onChange={(value) =>
+                            setHistoryColumnFilters((prev) => ({
+                              ...prev,
+                              status: value,
+                            }))
+                          }
+                          placeholder="Filter"
+                          ariaLabel="Filter history by status"
+                        />
+                      </th>
+                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[130px] min-w-[130px] max-w-[130px] bg-blue-100 text-left dark:bg-blue-900">
+                        <div>Confirmed By</div>
+                        <TableHeaderFilter
+                          value={historyColumnFilters.confirmedBy}
+                          onChange={(value) =>
+                            setHistoryColumnFilters((prev) => ({
+                              ...prev,
+                              confirmedBy: value,
+                            }))
+                          }
+                          placeholder="Filter user"
+                          ariaLabel="Filter history by confirmed user"
+                        />
+                      </th>
+                      <th className="global-tran-th-ui sticky top-0 z-[210] w-[130px] min-w-[130px] max-w-[130px] bg-blue-100 text-left dark:bg-blue-900">
+                        <div>Confirmed Date</div>
+                        <TableHeaderFilter
+                          value={historyColumnFilters.confirmedDate}
+                          onChange={(value) =>
+                            setHistoryColumnFilters((prev) => ({
+                              ...prev,
+                              confirmedDate: value,
+                            }))
+                          }
+                          placeholder="YYYY-MM-DD"
+                          ariaLabel="Filter history by confirmed date"
+                        />
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {groupedHistoryRows.map((group) => {
-                      const isCollapsed = isHistoryCategoryCollapsed(group.category);
-                      const categoryTotals = getHistoryCategoryTotals(group.rows);
+                      const isCollapsed = isHistoryCategoryCollapsed(
+                        group.category,
+                      );
+                      const categoryTotals = getHistoryCategoryTotals(
+                        group.rows,
+                      );
 
                       return (
                         <Fragment key={`${group.category}-history-table-group`}>
@@ -2099,7 +2720,9 @@ return (
                             <td colSpan={14} className="global-tran-td-ui !p-0">
                               <button
                                 type="button"
-                                onClick={() => toggleHistoryCategoryCollapse(group.category)}
+                                onClick={() =>
+                                  toggleHistoryCategoryCollapse(group.category)
+                                }
                                 aria-expanded={!isCollapsed}
                                 className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs font-bold uppercase text-blue-900 hover:bg-blue-100 dark:text-blue-100 dark:hover:bg-blue-800/40"
                               >
@@ -2109,10 +2732,19 @@ return (
                                       isCollapsed ? "-rotate-90" : "rotate-0"
                                     }`}
                                   />
-                                  <span className="truncate">Category: {group.category}</span>
+                                  <span className="truncate">
+                                    Category: {group.category}
+                                  </span>
                                 </span>
                                 <span className="shrink-0 text-right font-semibold normal-case">
-                                  {group.rows.length} line{group.rows.length === 1 ? "" : "s"} • Original: {categoryTotals.originalQty.toLocaleString()} • Confirmed: {categoryTotals.confirmedQty.toLocaleString()} • Variance: {categoryTotals.varianceQty.toLocaleString()}
+                                  {group.rows.length} line
+                                  {group.rows.length === 1 ? "" : "s"} •
+                                  Original:{" "}
+                                  {categoryTotals.originalQty.toLocaleString()}{" "}
+                                  • Confirmed:{" "}
+                                  {categoryTotals.confirmedQty.toLocaleString()}{" "}
+                                  • Variance:{" "}
+                                  {categoryTotals.varianceQty.toLocaleString()}
                                 </span>
                               </button>
                             </td>
@@ -2120,25 +2752,63 @@ return (
 
                           {!isCollapsed &&
                             group.rows.map((row) => (
-                              <tr key={`${row.itemCode || "item"}-${row.deliveryDate || "date"}-${row.forecastId || row.detailId || row.weeklyForecastNo || row.__displayIndex}-history`} className="global-tran-tr-ui">
-                                <td className="global-tran-td-ui sticky left-0 z-[40] w-[96px] min-w-[96px] max-w-[96px] overflow-hidden text-ellipsis whitespace-nowrap bg-white font-mono font-semibold dark:bg-black">{row.itemCode}</td>
+                              <tr
+                                key={`${row.itemCode || "item"}-${row.deliveryDate || "date"}-${row.forecastId || row.detailId || row.weeklyForecastNo || row.__displayIndex}-history`}
+                                className="global-tran-tr-ui"
+                              >
+                                <td className="global-tran-td-ui sticky left-0 z-[40] w-[96px] min-w-[96px] max-w-[96px] overflow-hidden text-ellipsis whitespace-nowrap bg-white font-mono font-semibold dark:bg-black">
+                                  {row.itemCode}
+                                </td>
                                 <td className="global-tran-td-ui sticky left-[96px] z-[40] w-[240px] min-w-[240px] max-w-[240px] bg-white font-medium dark:bg-black">
-                                  <span className="block truncate">{row.itemName}</span>
+                                  <span className="block truncate">
+                                    {row.itemName}
+                                  </span>
                                 </td>
-                                <td className="global-tran-td-ui sticky left-[336px] z-[40] w-[100px] min-w-[100px] max-w-[100px] overflow-hidden text-ellipsis whitespace-nowrap bg-white text-xs font-semibold text-slate-700 dark:bg-black dark:text-slate-200">{row.categCode || "-"}</td>
-                                <td className="global-tran-td-ui sticky left-[436px] z-[40] w-[72px] min-w-[72px] max-w-[72px] bg-white text-center shadow-[2px_0_0_0_rgba(226,232,240,1)] dark:bg-black">{row.uomCode || "-"}</td>
-                                <td className="global-tran-td-ui w-[120px] min-w-[120px] max-w-[120px] text-left">{row.deliveryDate}</td>
+                                <td className="global-tran-td-ui sticky left-[336px] z-[40] w-[100px] min-w-[100px] max-w-[100px] overflow-hidden text-ellipsis whitespace-nowrap bg-white text-xs font-semibold text-slate-700 dark:bg-black dark:text-slate-200">
+                                  {getCategoryLabel(row)}
+                                </td>
+                                <td className="global-tran-td-ui sticky left-[436px] z-[40] w-[72px] min-w-[72px] max-w-[72px] bg-white text-center shadow-[2px_0_0_0_rgba(226,232,240,1)] dark:bg-black">
+                                  {row.uomCode || "-"}
+                                </td>
+                                <td className="global-tran-td-ui w-[120px] min-w-[120px] max-w-[120px] text-left">
+                                  {row.deliveryDate}
+                                </td>
                                 <td className="global-tran-td-ui w-[90px] min-w-[90px] max-w-[90px] text-center font-semibold">
-                                  R{row.revisionNo || 1}{row.isLatestRevision ? " • Latest" : ""}
+                                  R{row.revisionNo || 1}
+                                  {row.isLatestRevision ? " • Latest" : ""}
                                 </td>
-                                <td className="global-tran-td-ui w-[120px] min-w-[120px] max-w-[120px] text-right font-semibold">{toNumber(row.previousWeeklyQty).toLocaleString()}</td>
-                                <td className="global-tran-td-ui w-[130px] min-w-[130px] max-w-[130px] text-right font-semibold">{toNumber(row.originalWeeklyQty).toLocaleString()}</td>
-                                <td className="global-tran-td-ui w-[110px] min-w-[110px] max-w-[110px] text-right font-semibold">{toNumber(row.quantityChange).toLocaleString()}</td>
-                                <td className="global-tran-td-ui w-[140px] min-w-[140px] max-w-[140px] text-right font-semibold text-green-700 dark:text-green-200">{toNumber(row.confirmedOrderQty).toLocaleString()}</td>
-                                <td className="global-tran-td-ui w-[110px] min-w-[110px] max-w-[110px] text-right font-semibold">{toNumber(row.balanceQty).toLocaleString()}</td>
-                                <td className="global-tran-td-ui w-[120px] min-w-[120px] max-w-[120px] text-left">{row.status}</td>
-                                <td className="global-tran-td-ui w-[130px] min-w-[130px] max-w-[130px] text-left">{row.confirmedBy || "-"}</td>
-                                <td className="global-tran-td-ui w-[130px] min-w-[130px] max-w-[130px] text-left">{row.confirmedDate || "-"}</td>
+                                <td className="global-tran-td-ui w-[120px] min-w-[120px] max-w-[120px] text-right font-semibold">
+                                  {toNumber(
+                                    row.previousWeeklyQty,
+                                  ).toLocaleString()}
+                                </td>
+                                <td className="global-tran-td-ui w-[130px] min-w-[130px] max-w-[130px] text-right font-semibold">
+                                  {toNumber(
+                                    row.originalWeeklyQty,
+                                  ).toLocaleString()}
+                                </td>
+                                <td className="global-tran-td-ui w-[110px] min-w-[110px] max-w-[110px] text-right font-semibold">
+                                  {toNumber(
+                                    row.quantityChange,
+                                  ).toLocaleString()}
+                                </td>
+                                <td className="global-tran-td-ui w-[140px] min-w-[140px] max-w-[140px] text-right font-semibold text-green-700 dark:text-green-200">
+                                  {toNumber(
+                                    row.confirmedOrderQty,
+                                  ).toLocaleString()}
+                                </td>
+                                <td className="global-tran-td-ui w-[110px] min-w-[110px] max-w-[110px] text-right font-semibold">
+                                  {toNumber(row.balanceQty).toLocaleString()}
+                                </td>
+                                <td className="global-tran-td-ui w-[120px] min-w-[120px] max-w-[120px] text-left">
+                                  {row.status}
+                                </td>
+                                <td className="global-tran-td-ui w-[130px] min-w-[130px] max-w-[130px] text-left">
+                                  {row.confirmedBy || "-"}
+                                </td>
+                                <td className="global-tran-td-ui w-[130px] min-w-[130px] max-w-[130px] text-left">
+                                  {row.confirmedDate || "-"}
+                                </td>
                               </tr>
                             ))}
                         </Fragment>
@@ -2147,10 +2817,19 @@ return (
 
                     {filteredHistoryRows.length === 0 && (
                       <tr>
-                        <td colSpan={14} className="global-tran-td-ui py-10 text-center text-sm text-slate-500">
+                        <td
+                          colSpan={14}
+                          className="global-tran-td-ui py-10 text-center text-sm text-slate-500"
+                        >
                           <div className="flex flex-col items-center justify-center gap-2">
                             <PackageOpen className="h-8 w-8 text-slate-400" />
-                            <span>{hasTaggedBranch ? (historyRows.length > 0 ? "No history lines found for the selected category." : "No Order Forecast history loaded.") : "Assign a branch to this user before ordering."}</span>
+                            <span>
+                              {hasTaggedBranch
+                                ? historyRows.length > 0
+                                  ? "No history lines found for the selected category."
+                                  : "No Order Forecast history loaded."
+                                : "Assign a branch to this user before ordering."}
+                            </span>
                           </div>
                         </td>
                       </tr>
@@ -2163,14 +2842,22 @@ return (
             <div className="global-tran-tab-footer-main-div-ui !mt-4 !justify-end !gap-3">
               <div className="global-tran-tab-footer-total-main-div-ui w-full rounded-lg bg-blue-50/60 px-3 py-2 sm:ml-auto sm:w-auto dark:bg-gray-900/40">
                 <div className="global-tran-tab-footer-total-div-ui">
-                  <label className="global-tran-tab-footer-total-label-ui">Total Original Qty:</label>
-                  <label className="global-tran-tab-footer-total-value-ui">{totalHistoryOriginalQty.toLocaleString()}</label>
+                  <label className="global-tran-tab-footer-total-label-ui">
+                    Total Original Qty:
+                  </label>
+                  <label className="global-tran-tab-footer-total-value-ui">
+                    {totalHistoryOriginalQty.toLocaleString()}
+                  </label>
                 </div>
               </div>
               <div className="global-tran-tab-footer-total-main-div-ui w-full rounded-lg bg-green-50/60 px-3 py-2 sm:w-auto dark:bg-gray-900/40">
                 <div className="global-tran-tab-footer-total-div-ui">
-                  <label className="global-tran-tab-footer-total-label-ui">Total Confirmed Order:</label>
-                  <label className="global-tran-tab-footer-total-value-ui">{totalHistoryConfirmedQty.toLocaleString()}</label>
+                  <label className="global-tran-tab-footer-total-label-ui">
+                    Total Confirmed Order:
+                  </label>
+                  <label className="global-tran-tab-footer-total-value-ui">
+                    {totalHistoryConfirmedQty.toLocaleString()}
+                  </label>
                 </div>
               </div>
             </div>
@@ -2178,323 +2865,6 @@ return (
         )}
       </div>
 
-      <div className="global-tran-tab-div-ui !p-3 sm:!p-4 lg:!p-6">
-        <div className="global-tran-tab-nav-ui !items-stretch !gap-3 sm:!items-center">
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-            <button className="global-tran-tab-padding-ui global-tran-tab-text_active-ui">
-              Daily Order Confirmation
-            </button>
-            {confirmationRows.length > 0 && <StatusPill variant="success">{confirmationRows.length} lines</StatusPill>}
-          </div>
-
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-            <ActionButton icon={RefreshCw} onClick={() => loadConfirmation()} disabled={confirmLoading || !hasTaggedBranch}>
-              {confirmLoading ? "Loading..." : "Load Forecast"}
-            </ActionButton>
-            <ActionButton
-              icon={RotateCcw}
-              onClick={resetConfirmationRows}
-              disabled={confirmLoading || loadedConfirmationRows.length === 0}
-            >
-              Reset
-            </ActionButton>
-            <ActionButton
-              icon={ChevronDown}
-              onClick={handleToggleAllConfirmationCategories}
-              disabled={confirmLoading || groupedConfirmationRows.length === 0}
-            >
-              {visibleCollapsedConfirmationCategoryCount === groupedConfirmationRows.length && groupedConfirmationRows.length > 0
-                ? "Show Categories"
-                : "Collapse Categories"}
-            </ActionButton>
-          </div>
-        </div>
-
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <FloatingField id="deliveryDate" label="Forecast Date Order" type="date" value={deliveryDate} onChange={setDeliveryDate} />
-          <FloatingField
-            id="confirmationCategoryFilter"
-            label="Category Filter"
-            type="select"
-            value={confirmationCategoryFilter}
-            onChange={setConfirmationCategoryFilter}
-            disabled={confirmationRows.length === 0}
-          >
-            <option value="">All Categories</option>
-            {confirmationCategoryOptions.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </FloatingField>
-        </div>
-
-        <div className="mt-3 space-y-3 md:hidden">
-          {groupedConfirmationRows.map((group) => {
-            const isCollapsed = isConfirmationCategoryCollapsed(group.category);
-            const categoryTotals = getConfirmationCategoryTotals(group.rows);
-
-            return (
-              <div key={`${group.category}-confirmation-group`} className="space-y-3">
-                <button
-                  type="button"
-                  onClick={() => toggleConfirmationCategoryCollapse(group.category)}
-                  aria-expanded={!isCollapsed}
-                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-xs font-bold uppercase shadow-sm transition-colors ${
-                    isCollapsed
-                      ? "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-gray-800 dark:text-slate-200"
-                      : "border-green-200 bg-green-50 text-green-800 hover:bg-green-100 dark:border-green-800 dark:bg-green-900/30 dark:text-green-100"
-                  }`}
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <ChevronDown
-                      className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
-                        isCollapsed ? "-rotate-90" : "rotate-0"
-                      }`}
-                    />
-                    <span className="truncate">Category: {group.category}</span>
-                  </span>
-                  <span className="shrink-0 text-right font-semibold normal-case">
-                    {group.rows.length} line{group.rows.length === 1 ? "" : "s"} • Order {categoryTotals.orderQty.toLocaleString()} • Confirm {categoryTotals.confirmedQty.toLocaleString()}
-                  </span>
-                </button>
-
-                {!isCollapsed &&
-                  group.rows.map((row) => {
-                    const isConfirmed = toBoolean(row.confirmed);
-                    const originalIndex = row.__originalIndex;
-
-                    return (
-                      <div
-                        key={`${row.itemCode || "item"}-${originalIndex}-confirmation-card`}
-                        className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-gray-800"
-                      >
-                        <div className="flex items-start justify-between gap-3 border-b border-slate-100 bg-blue-50 px-3 py-2 dark:border-slate-700 dark:bg-blue-900/30">
-                          <div className="min-w-0">
-                            <div className="font-mono text-[11px] font-bold text-slate-600 dark:text-slate-300">
-                              {row.itemCode}
-                            </div>
-                            <div className="truncate text-sm font-semibold text-slate-900 dark:text-white">
-                              {row.itemName}
-                            </div>
-                            <div className="mt-1 truncate text-[10px] font-bold uppercase text-slate-500 dark:text-slate-300">
-                              Category: {row.categCode || "-"}
-                            </div>
-                          </div>
-                          <span className="shrink-0 rounded-md bg-white px-2 py-1 text-[10px] font-bold text-slate-700 shadow-sm dark:bg-gray-900 dark:text-slate-200">
-                            {row.uomCode || "-"}
-                          </span>
-                        </div>
-
-                        <div className="space-y-3 px-3 py-3">
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <div className="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-300">
-                                Order Qty
-                              </div>
-                              <div className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500">
-                                Order Forecast
-                              </div>
-                            </div>
-                            <div className="w-28 shrink-0 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-right text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-gray-900 dark:text-slate-200">
-                              {toNumber(row.forecastQty).toLocaleString()}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <div className="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-300">
-                                Confirm Qty
-                              </div>
-                              {isConfirmed && (
-                                <div className="text-[10px] font-bold uppercase text-green-600 dark:text-green-300">
-                                  Confirmed
-                                </div>
-                              )}
-                            </div>
-                            <div className="w-28 shrink-0 rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-gray-900">
-                              <QuantityInput
-                                value={row.orderQty ?? 0}
-                                onChange={(value) => handleConfirmQtyChange(originalIndex, value)}
-                                tone="green"
-                                navGroup="confirmation-mobile"
-                                navRow={row.__displayIndex}
-                                navCol={0}
-                                disabled={isConfirmed}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <div className="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-300">
-                                Confirmation Date
-                              </div>
-                              <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                                {shortDate(row.deliveryDate || deliveryDate)}
-                              </div>
-                            </div>
-                            <div className="w-36 shrink-0 rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-gray-900">
-                              <DateInput
-                                value={row.deliveryDate || deliveryDate}
-                                onChange={(value) => handleConfirmDateChange(originalIndex, value)}
-                                disabled={isConfirmed}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            );
-          })}
-
-          {filteredConfirmationRows.length === 0 && (
-            <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500 shadow-sm dark:border-slate-700 dark:bg-gray-800 dark:text-slate-300">
-              <div className="flex flex-col items-center justify-center gap-2">
-                <PackageOpen className="h-8 w-8 text-slate-400" />
-                <span>{hasTaggedBranch ? "No forecast rows loaded for confirmation." : "Assign a branch to this user before ordering."}</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="global-tran-table-main-div-ui mt-3 hidden max-w-full overflow-x-auto sm:mt-4 md:block">
-          <div className="global-tran-table-main-sub-div-ui relative isolate !max-h-[56vh] sm:!max-h-[360px]">
-            <table className="w-max min-w-full table-fixed border-separate border-spacing-0 [&_td]:border-b [&_td]:border-r [&_td]:border-slate-200 [&_th]:border-b [&_th]:border-r [&_th]:border-slate-200 [&_tr>td:first-child]:border-l">
-              <thead className="global-tran-thead-div-ui sticky top-0 z-[220]">
-                <tr>
-                  <th className="global-tran-th-ui sticky left-0 top-0 z-[240] w-[96px] min-w-[96px] max-w-[96px] bg-blue-100 text-left dark:bg-blue-900">Code</th>
-                  <th className="global-tran-th-ui sticky left-[96px] top-0 z-[240] w-[240px] min-w-[240px] max-w-[240px] bg-blue-100 text-left dark:bg-blue-900">Item Name</th>
-                  <th className="global-tran-th-ui sticky left-[336px] top-0 z-[240] w-[100px] min-w-[100px] max-w-[100px] bg-blue-100 text-left dark:bg-blue-900">Category</th>
-                  <th className="global-tran-th-ui sticky left-[436px] top-0 z-[240] w-[72px] min-w-[72px] max-w-[72px] bg-blue-100 text-center shadow-[2px_0_0_0_rgba(226,232,240,1)] dark:bg-blue-900">UOM</th>
-                  <th className="global-tran-th-ui sticky top-0 z-[210] w-[120px] min-w-[120px] max-w-[120px] bg-blue-100 text-right dark:bg-blue-900">Order Qty</th>
-                  <th className="global-tran-th-ui sticky top-0 z-[210] w-[120px] min-w-[120px] max-w-[120px] bg-blue-100 text-right dark:bg-blue-900">Confirm Qty</th>
-                  <th className="global-tran-th-ui sticky top-0 z-[210] w-[150px] min-w-[150px] max-w-[150px] bg-blue-100 text-left dark:bg-blue-900">Confirmation Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {groupedConfirmationRows.map((group) => {
-                  const isCollapsed = isConfirmationCategoryCollapsed(group.category);
-                  const categoryTotals = getConfirmationCategoryTotals(group.rows);
-
-                  return (
-                    <Fragment key={`${group.category}-confirmation-table-group`}>
-                      <tr className="bg-green-50/80 dark:bg-green-900/30">
-                        <td colSpan={7} className="global-tran-td-ui px-0 py-0">
-                          <button
-                            type="button"
-                            onClick={() => toggleConfirmationCategoryCollapse(group.category)}
-                            aria-expanded={!isCollapsed}
-                            className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs font-bold uppercase text-green-800 hover:bg-green-100 dark:text-green-100 dark:hover:bg-green-900/50"
-                          >
-                            <span className="flex min-w-0 items-center gap-2">
-                              <ChevronDown
-                                className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
-                                  isCollapsed ? "-rotate-90" : "rotate-0"
-                                }`}
-                              />
-                              <span className="truncate">Category: {group.category}</span>
-                            </span>
-                            <span className="shrink-0 text-right font-semibold normal-case text-slate-600 dark:text-slate-200">
-                              {group.rows.length} line{group.rows.length === 1 ? "" : "s"} • Order {categoryTotals.orderQty.toLocaleString()} • Confirm {categoryTotals.confirmedQty.toLocaleString()}
-                            </span>
-                          </button>
-                        </td>
-                      </tr>
-
-                      {!isCollapsed &&
-                        group.rows.map((row) => {
-                          const originalIndex = row.__originalIndex;
-
-                          return (
-                            <tr key={`${row.itemCode || "item"}-${originalIndex}`} className="global-tran-tr-ui">
-                              <td className="global-tran-td-ui sticky left-0 z-[40] w-[96px] min-w-[96px] max-w-[96px] overflow-hidden text-ellipsis whitespace-nowrap bg-white font-mono font-semibold dark:bg-black">{row.itemCode}</td>
-                              <td className="global-tran-td-ui sticky left-[96px] z-[40] w-[240px] min-w-[240px] max-w-[240px] bg-white font-medium dark:bg-black">
-                                <span className="block truncate">{row.itemName}</span>
-                              </td>
-                              <td className="global-tran-td-ui sticky left-[336px] z-[40] w-[100px] min-w-[100px] max-w-[100px] overflow-hidden text-ellipsis whitespace-nowrap bg-white text-xs font-semibold text-slate-700 dark:bg-black dark:text-slate-200">{row.categCode || "-"}</td>
-                              <td className="global-tran-td-ui sticky left-[436px] z-[40] w-[72px] min-w-[72px] max-w-[72px] bg-white text-center shadow-[2px_0_0_0_rgba(226,232,240,1)] dark:bg-black">
-                                <span className="block w-full text-center text-xs font-medium text-slate-700 dark:text-slate-200">{row.uomCode || "-"}</span>
-                              </td>
-                              <td className="global-tran-td-ui w-[120px] min-w-[120px] max-w-[120px] bg-slate-50 text-right text-xs font-semibold text-slate-700 dark:bg-gray-900 dark:text-slate-200">
-                                {toNumber(row.forecastQty).toLocaleString()}
-                              </td>
-                              <td className="global-tran-td-ui w-[120px] min-w-[120px] max-w-[120px] text-right">
-                                <QuantityInput
-                                  value={row.orderQty ?? 0}
-                                  onChange={(value) => handleConfirmQtyChange(originalIndex, value)}
-                                  tone="green"
-                                  navGroup="confirmation"
-                                  navRow={row.__displayIndex}
-                                  navCol={0}
-                                  disabled={toBoolean(row.confirmed)}
-                                />
-                              </td>
-                              <td className="global-tran-td-ui w-[150px] min-w-[150px] max-w-[150px] text-left">
-                                <DateInput
-                                  value={row.deliveryDate || deliveryDate}
-                                  onChange={(value) => handleConfirmDateChange(originalIndex, value)}
-                                  disabled={toBoolean(row.confirmed)}
-                                />
-                              </td>
-                            </tr>
-                          );
-                        })}
-                    </Fragment>
-                  );
-                })}
-
-                {filteredConfirmationRows.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="global-tran-td-ui py-10 text-center text-sm text-slate-500">
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <PackageOpen className="h-8 w-8 text-slate-400" />
-                        <span>{hasTaggedBranch ? "No forecast rows loaded for confirmation." : "Assign a branch to this user before ordering."}</span>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="global-tran-tab-footer-main-div-ui !mt-4 !gap-3">
-          <div className="global-tran-tab-footer-button-div-ui w-full sm:w-auto">
-            <ActionButton
-              icon={CheckCircle2}
-              onClick={confirmOrder}
-              disabled={
-                !hasTaggedBranch ||
-                filteredConfirmationRows.length === 0 ||
-                confirmSubmitting ||
-                !filteredConfirmationRows.some((row) => !toBoolean(row.confirmed) && toNumber(row.orderQty) > 0)
-              }
-              variant="success"
-            >
-              {confirmSubmitting ? "Confirming..." : "Confirm Order"}
-            </ActionButton>
-          </div>
-
-          <div className="ml-auto flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-            <div className="global-tran-tab-footer-total-main-div-ui w-full rounded-lg bg-blue-50/60 px-3 py-2 sm:w-auto dark:bg-gray-900/40">
-              <div className="global-tran-tab-footer-total-div-ui">
-                <label className="global-tran-tab-footer-total-label-ui">Total Order Qty:</label>
-                <label className="global-tran-tab-footer-total-value-ui">{totalConfirmationOrderQty.toLocaleString()}</label>
-              </div>
-            </div>
-
-            <div className="global-tran-tab-footer-total-main-div-ui w-full rounded-lg bg-green-50/60 px-3 py-2 sm:w-auto dark:bg-gray-900/40">
-              <div className="global-tran-tab-footer-total-div-ui">
-                <label className="global-tran-tab-footer-total-label-ui">Total Confirmed Qty:</label>
-                <label className="global-tran-tab-footer-total-value-ui">{totalConfirmedQty.toLocaleString()}</label>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <div className="fixed bottom-4 right-4 hidden max-w-[calc(100vw-2rem)] gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-lg dark:border-slate-700 dark:bg-gray-800 dark:text-slate-200 md:flex md:max-w-[420px]">
         <UserRound className="h-4 w-4 text-blue-600" />
