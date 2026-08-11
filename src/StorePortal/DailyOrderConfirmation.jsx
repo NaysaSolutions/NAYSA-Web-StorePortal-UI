@@ -1104,6 +1104,7 @@ export default function DailyOrderConfirmation({ user: authUser }) {
         <div className="global-tran-tab-nav-ui !items-stretch !gap-3 sm:!items-center">
           <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
             <button className="global-tran-tab-padding-ui global-tran-tab-text_active-ui">
+              <CheckCircle2 className="h-4 w-4" />
               Daily Order Confirmation
             </button>
             {confirmationRows.length > 0 && (

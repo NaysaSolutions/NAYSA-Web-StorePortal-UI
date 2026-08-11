@@ -6,6 +6,7 @@ import {
   ClipboardList,
   LogOut,
   Menu,
+  PackagePlus,
   ShieldAlert,
   X,
 } from "lucide-react";
@@ -16,6 +17,7 @@ const StorePortal = lazy(() => import("./StorePortal/StorePortalOrder"));
 const DailyOrderConfirmation = lazy(
   () => import("./StorePortal/DailyOrderConfirmation"),
 );
+const Supplemmentary = lazy(() => import("./StorePortal/Supplemmentary"));
 
 const MENU_ITEMS = [
   {
@@ -30,6 +32,13 @@ const MENU_ITEMS = [
     label: "Daily Order Confirmation",
     group: "Other Module",
     icon: CheckCircle2,
+    moduleId: "store-portal",
+  },
+  {
+    id: "supplementary-order",
+    label: "Supplementary Order",
+    group: "Other Module",
+    icon: PackagePlus,
     moduleId: "store-portal",
   },
 ];
@@ -621,6 +630,9 @@ export default function App() {
               )}
               {resolvedActiveMenu === "daily-order-confirmation" && (
                 <DailyOrderConfirmation user={authUser} />
+              )}
+              {resolvedActiveMenu === "supplementary-order" && (
+                <Supplemmentary user={authUser} />
               )}
               {!resolvedActiveMenu && <NoModuleAccess isLoading={accessRefreshing} onLogout={handleLogout} />}
             </Suspense>

@@ -102,24 +102,35 @@ export default function Login({ onLoginSuccess }) {
             <div className="my-7 h-1 w-28 rounded-full bg-sky-400 shadow-[0_0_22px_rgba(56,189,248,.8)]" />
           </section>
 
-          <section className="flex items-center justify-center">
-            <div className="relative w-full max-w-md animate-[fadeSlideUp_.55s_ease-out]">
-              <div className="mb-4 flex flex-col items-center text-center">
-                <div
-                  className="mb-4 text-white drop-shadow-[0_4px_14px_rgba(0,0,0,.55)]"
-                  style={{
-                    fontFamily:
-                      'Didot, "Bodoni MT", "Times New Roman", serif',
-                  }}
-                  aria-label="Dean and Deluca Philippines"
-                >
-                  <div className="whitespace-nowrap text-[clamp(2rem,5vw,3rem)] font-medium uppercase leading-none tracking-[0.06em]">
-                    DEAN &amp; DELUCA
-                  </div>
-                  <div className="mt-2 text-[clamp(0.7rem,1.5vw,0.95rem)] font-normal uppercase leading-none tracking-[0.42em]">
-                    PHILIPPINES
-                  </div>
-                </div>
+         <section className="flex items-center justify-center">
+  <div className="relative w-full max-w-md animate-[fadeSlideUp_.55s_ease-out]">
+    <div className="mb-4 flex flex-col items-center text-center">
+      <div
+        className="mb-4 text-white drop-shadow-[0_4px_14px_rgba(0,0,0,.55)]"
+        aria-label="Dean and Deluca Philippines"
+      >
+        {/* Main Title: Copperplate / Flared Serif Style */}
+        <div
+          className="whitespace-nowrap text-[clamp(2rem,5vw,3rem)] font-medium uppercase leading-none tracking-[0.06em]"
+          style={{
+            fontFamily:
+              '"Copperplate", "Copperplate Gothic Light", "Cinzel", "Marcellus", serif',
+          }}
+        >
+          DEAN &amp; DELUCA
+        </div>
+
+        {/* Subtitle: Clean Geometric Sans-Serif */}
+        <div
+          className="mt-2 text-[clamp(0.7rem,1.5vw,0.95rem)] font-normal uppercase leading-none tracking-[0.42em]"
+          style={{
+            fontFamily:
+              '"Montserrat", "Futura", "Helvetica Neue", "Arial", sans-serif',
+          }}
+        >
+          PHILIPPINES
+        </div>
+      </div>
 
                 {/* Mobile-only brand line, since the hero copy is hidden below lg */}
                 <div className="mb-1 inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.22em] text-sky-100 backdrop-blur-md lg:hidden">

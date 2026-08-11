@@ -9,6 +9,7 @@ import {
 import {
   Building2,
   ChevronDown,
+  ClipboardList,
   Clock3,
   PackageOpen,
   RefreshCw,
@@ -52,12 +53,24 @@ const getDateRange = (start, end) => {
   return dates;
 };
 
-const defaultForecastStartDate = () => formatDate(new Date());
+const defaultForecastStartDate = () => {
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+  const distanceToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + distanceToMonday);
+  return formatDate(monday);
+};
 
 const defaultForecastEndDate = () => {
-  const d = new Date();
-  d.setDate(d.getDate() + 6);
-  return formatDate(d);
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const distanceToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  
+  const sunday = new Date(today);
+  sunday.setDate(today.getDate() + distanceToMonday + 6);
+  return formatDate(sunday);
 };
 
 const shortDate = (iso) => {
@@ -1821,6 +1834,7 @@ export default function StorePortalOrder({ user: authUser }) {
               onClick={() => setForecastView("entry")}
               className={`global-tran-tab-padding-ui ${forecastView === "entry" ? "global-tran-tab-text_active-ui" : "rounded-lg bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-slate-300"}`}
             >
+              <ClipboardList className="h-4 w-4" />
               Order Forecast
             </button>
             <button
