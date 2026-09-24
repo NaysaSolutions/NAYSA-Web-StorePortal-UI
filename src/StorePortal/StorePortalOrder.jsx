@@ -1049,15 +1049,19 @@ export default function StorePortalOrder({ user: authUser }) {
   const resolvedStoreName = storeName || branchName;
   const branchDisplay = resolvedStoreName || branchCode;
 
-  const categoryOptions = useMemo(() => {
-    const categories = new Set();
+const categoryOptions = useMemo(() => {
+  const categories = new Set();
 
-    items.forEach((item) => {
-      categories.add(getCategoryLabel(item));
-    });
+  items.forEach((item) => {
+    const description = String(item.categDesc || "").trim();
 
-    return Array.from(categories).sort((a, b) => a.localeCompare(b));
-  }, [items]);
+    if (description) {
+      categories.add(description);
+    }
+  });
+
+  return Array.from(categories).sort((a, b) => a.localeCompare(b));
+}, [items]);
 
   const filteredItems = useMemo(() => {
     const categoryRows = categoryFilter
@@ -1068,9 +1072,9 @@ export default function StorePortalOrder({ user: authUser }) {
         containsFilterText(item.itemCode, forecastColumnFilters.itemCode) &&
         containsFilterText(item.itemName, forecastColumnFilters.itemName) &&
         containsFilterText(
-          `${getCategoryLabel(item)} ${item.categCode || ""}`,
-          forecastColumnFilters.category,
-        ) &&
+  item.categDesc || "",
+  forecastColumnFilters.category,
+)&&
         containsFilterText(item.uomCode, forecastColumnFilters.uom),
     );
 
@@ -1172,10 +1176,10 @@ export default function StorePortalOrder({ user: authUser }) {
       (row) =>
         containsFilterText(row.itemCode, historyColumnFilters.itemCode) &&
         containsFilterText(row.itemName, historyColumnFilters.itemName) &&
-        containsFilterText(
-          `${getCategoryLabel(row)} ${row.categCode || ""}`,
-          historyColumnFilters.category,
-        ) &&
+    containsFilterText(
+      row.categDesc || "",
+      historyColumnFilters.category,
+    ) &&
         containsFilterText(row.uomCode, historyColumnFilters.uom) &&
         containsFilterText(
           row.deliveryDate,
